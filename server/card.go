@@ -2,8 +2,6 @@ package main
 
 import "golang.org/x/exp/rand"
 
-const DeckSize = 15
-
 // Defines types of card,
 type Card int
 
