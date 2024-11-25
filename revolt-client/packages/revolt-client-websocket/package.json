@@ -1,0 +1,9 @@
+{
+    "name": "revolt-client-websocket",
+    "version": "1.0.0",
+    "scripts": {
+        "clean": "rimraf ./build *.tsbuildinfo ",
+        "build": "pnpm clean && pnpm tsc -b --verbose",
+        "test": "vitest"
+    }
+}
