@@ -72,3 +72,12 @@ There are 8 possible states in the Revolt state machine, detailed below. Each st
 For example, a simple turn with no challenges or block would look like this:
 
 `[Default]->AttemptAction()->[ActionPending]->CommitTurn()->[Finished]`
+
+## WebSocket API
+
+```json
+// Client sends
+{"type": "createGame"}
+// Server responds.
+{"type": "createGame", "payload":{"id": "aaa-bbb-ccc"}}
+```

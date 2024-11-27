@@ -1,24 +1,27 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import { Client } from './client';
+import './style.css';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+const client = new Client;
+await client.connect("ws://localhost:8080");
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+const app = document.querySelector('#app');
+if (!app) {
+    throw new Error('no app element');
+}
+
+const button = document.createElement('button');
+button.onclick = () => client.createGame();
+button.textContent = 'create game';
+
+app.appendChild(button);
+
+
+const input = document.createElement('input');
+input.type = 'text';
+app.appendChild(input);
+
+const join = document.createElement('button');
+join.onclick = () => client.joinGame(input.value);
+join.textContent = 'join game';
+
+document.querySelector('#app')?.appendChild(join);

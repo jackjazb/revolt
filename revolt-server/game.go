@@ -299,7 +299,7 @@ func (g *Game) EndTurn() error {
 	return nil
 }
 
-// Checks if the game is in any of the passed states.
+// Utility function to check if the game is in any of the passed states.
 func (g *Game) StateIn(states ...TurnState) bool {
 	for _, state := range states {
 		if g.TurnState == state {

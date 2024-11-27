@@ -6,7 +6,7 @@ import (
 )
 
 func run() error {
-	WebSocketHandler()
+	RunServer()
 
 	game, err := NewGame(3)
 	if err != nil {
