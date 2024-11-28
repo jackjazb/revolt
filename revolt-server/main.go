@@ -8,10 +8,11 @@ import (
 func run() error {
 	RunServer()
 
-	game, err := NewGame(3)
-	if err != nil {
-		return err
-	}
+	game := NewGame()
+	game.AddPlayer()
+	game.AddPlayer()
+	game.AddPlayer()
+
 	// Do a round of tax so everyone has cash.
 	for range len(game.Players) {
 		// Turn 1
@@ -37,7 +38,8 @@ func run() error {
 		Type:         Assassinate,
 		TargetPlayer: 1,
 	}
-	err = game.AttemptAction(assassinate)
+	err := game.AttemptAction(assassinate)
+
 	if err != nil {
 		return err
 	}

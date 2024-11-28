@@ -3,11 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"slices"
-	"strings"
-	"time"
-
-	"golang.org/x/exp/rand"
 )
 
 const MaxPlayers = 6
@@ -68,60 +65,54 @@ type Game struct {
 	PendingChallenge Challenge
 }
 
-// Creates a new game with a set player count.
-func NewGame(playerCount int) (Game, error) {
-	if playerCount > MaxPlayers {
-		return Game{}, fmt.Errorf("too many players - max %d", MaxPlayers)
-	}
-
-	rand.Seed(uint64(time.Now().UnixNano()))
-
-	players := []Player{}
-	for range playerCount {
-		player := Player{
-			Cards:   [2]CardState{},
-			Credits: 2,
-		}
-		players = append(players, player)
-	}
-
+// Creates a new game with a shuffled deck.
+func NewGame() Game {
 	shuffled := ShuffleCards(Deck)
-
-	for i := range playerCount * 2 {
-		// Remove the last card from the active deck and give it to the player.
-		index := len(shuffled) - 1
-		card := shuffled[index]
-		shuffled = shuffled[:index]
-
-		cardState := CardState{
-			Card:  card,
-			Alive: true,
-		}
-
-		players[i%playerCount].Cards[i/playerCount] = cardState
-	}
 
 	game := Game{
 		Deck:             shuffled,
-		Players:          players,
+		Players:          []Player{},
 		Leader:           0,
 		PendingAction:    Action{},
 		PendingBlock:     Block{},
 		PendingChallenge: Challenge{},
 		TurnState:        Default,
 	}
-	return game, nil
+	return game
 }
 
-func (g Game) String() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Current deck: %s\n", g.Deck))
-	sb.WriteString(fmt.Sprintf("Player %d leading\n", g.Leader+1))
-	sb.WriteString(fmt.Sprintf("Current state: %s\n", g.TurnState))
-	for i, player := range g.Players {
-		sb.WriteString(fmt.Sprintf("Player %d hand: %v\n", i+1, player))
+// Adds a player to the game, returning their player number.
+func (g *Game) AddPlayer() (int, error) {
+	if len(g.Players) >= MaxPlayers {
+		return 0, errors.New("attempted to add player to a full game")
 	}
-	return sb.String()
+	player := Player{
+		Cards:   [2]CardState{},
+		Credits: 2,
+	}
+	g.Players = append(g.Players, player)
+	log.Println(g.Players)
+	return len(g.Players) - 1, nil
+}
+
+// Deals two cards to each players in the current game.
+func (g *Game) Deal() {
+	playerCount := len(g.Players)
+	fmt.Println(g.Players)
+	for i := range playerCount * 2 {
+		// Remove the last card from the active deck and give it to the player.
+		index := len(g.Deck) - 1
+		card := g.Deck[index]
+		g.Deck = g.Deck[:index]
+
+		cardState := CardState{
+			Card:  card,
+			Alive: true,
+		}
+
+		g.Players[i%playerCount].Cards[i/playerCount] = cardState
+	}
+	fmt.Printf("players after deal: %+v", g.Players)
 }
 
 // Transition from the default game state to ActionPending.

@@ -1,6 +1,10 @@
 package main
 
-import "golang.org/x/exp/rand"
+import (
+	"time"
+
+	"golang.org/x/exp/rand"
+)
 
 // Defines types of card,
 type Card int
@@ -15,8 +19,8 @@ const (
 
 // Defines the state of a single player card.
 type CardState struct {
-	Card  Card
-	Alive bool
+	Card  Card `json:"card"`
+	Alive bool `json:"alive"`
 }
 
 // Defines possible player actions.
@@ -81,6 +85,7 @@ func (i Card) String() string {
 
 // Shuffles a list of cards.
 func ShuffleCards(cards []Card) []Card {
+	rand.Seed(uint64(time.Now().UnixNano()))
 	shuffled := cards
 	for range 16 {
 		deck := shuffled

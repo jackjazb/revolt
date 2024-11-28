@@ -1,19 +1,54 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewGame(t *testing.T) {
-	game, err := NewGame(2)
-	if err != nil {
-		t.Error("error creating game", err)
-	}
+	game := NewGame()
 
-	t.Run("should set up a game with the correct player count", func(t *testing.T) {
+	t.Run("should set up a game in the default state", func(t *testing.T) {
+		state := game.TurnState
+		if state != Default {
+			t.Error("incorrect game state, expected Default got", state)
+		}
+	})
+}
+
+func TestAddPlayer(t *testing.T) {
+	game := NewGame()
+
+	t.Run("should add players to the game", func(t *testing.T) {
+		game.AddPlayer()
+		game.AddPlayer()
+
 		players := len(game.Players)
 		if players != 2 {
 			t.Error("incorrect player count, expected 2 got", players)
 		}
 	})
+
+	t.Run("should reject too many players", func(t *testing.T) {
+		game = NewGame()
+		game.AddPlayer()
+		game.AddPlayer()
+		game.AddPlayer()
+		game.AddPlayer()
+		game.AddPlayer()
+		game.AddPlayer()
+		_, err := game.AddPlayer()
+
+		if err == nil {
+			t.Error("expected error adding player , got nil")
+		}
+	})
+}
+
+func TestDeal(t *testing.T) {
+	game := NewGame()
+	game.AddPlayer()
+	game.AddPlayer()
+	game.Deal()
 
 	t.Run("should give each player two cards", func(t *testing.T) {
 		cards := len(game.Players[0].Cards)
@@ -31,28 +66,10 @@ func TestNewGame(t *testing.T) {
 			t.Errorf("wrong number of cards in play, expected %d got %d", len(Deck), cards)
 		}
 	})
-
-	t.Run("should set up a game in the default state", func(t *testing.T) {
-		state := game.TurnState
-		if state != Default {
-			t.Error("incorrect game state, expected Default got", state)
-		}
-	})
-
-	t.Run("should reject too many players", func(t *testing.T) {
-		game, err = NewGame(20)
-		if err == nil {
-			t.Error("expected error creating game, got nil")
-		}
-	})
 }
 
 func AttemptAction(t *testing.T) {
-	game, err := NewGame(2)
-	if err != nil {
-		t.Error("error creating game", err)
-	}
-
+	game := NewGame()
 	action := Action{
 		Type:         Assassinate,
 		TargetPlayer: 0,

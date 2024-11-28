@@ -23,5 +23,10 @@ app.appendChild(input);
 const join = document.createElement('button');
 join.onclick = () => client.joinGame(input.value);
 join.textContent = 'join game';
-
 document.querySelector('#app')?.appendChild(join);
+
+
+const start = document.createElement('button');
+start.onclick = () => client.startGame();
+start.textContent = 'start game';
+document.querySelector('#app')?.appendChild(start);
