@@ -5,14 +5,42 @@ import (
 	"log"
 )
 
-// The response from the server for client actions, for broadcasting the current state.
-type StateUpdate struct {
-	ClientId string       `json:"clientId"`
-	State    GameInstance `json:"state"`
+// A client state update.
+// This should contain everything a client needs to play, but nothing that would allow cheating.
+type ClientStateBroadcast struct {
+	GameId           string     `json:"gameId"`
+	OwnerId          string     `json:"ownerId"`
+	ClientId         string     `json:"clientId"`
+	Leader           int        `json:"leader"`
+	PlayerNumber     int        `json:"number"`
+	Status           GameStatus `json:"status"`
+	Clients          []Client   `json:"clients"`
+	Self             Player     `json:"self"`
+	TurnState        TurnState  `json:"turnState"`
+	PendingAction    Action     `json:"pendingAction"`
+	PendingBlock     Block      `json:"pendingBlock"`
+	PendingChallenge Challenge  `json:"pendingChallenge"`
+}
+
+func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadcast {
+	return ClientStateBroadcast{
+		GameId:           gi.GameId,
+		OwnerId:          gi.OwnerId,
+		ClientId:         client.Id,
+		Leader:           gi.Game.Leader,
+		PlayerNumber:     client.Number,
+		Status:           gi.Status,
+		Clients:          []Client{},
+		Self:             gi.Game.Players[client.Number],
+		TurnState:        gi.Game.TurnState,
+		PendingAction:    gi.Game.PendingAction,
+		PendingBlock:     gi.Game.PendingBlock,
+		PendingChallenge: gi.Game.PendingChallenge,
+	}
 }
 
 // Converts a state update message to a JSON byte array.
-func (s *StateUpdate) Serialise() ([]byte, error) {
+func (s *ClientStateBroadcast) Serialise() ([]byte, error) {
 	bytes, err := json.Marshal(s)
 	if err != nil {
 		log.Println(err)

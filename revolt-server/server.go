@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -28,22 +29,22 @@ func UnmarshalPayload(payload interface{}, v any) error {
 }
 
 // The status of a given instance.
-type GameStatus int
+type GameStatus string
 
 // Defines possible instance statuses.
 const (
-	Lobby GameStatus = iota
-	InProgress
-	Complete
+	Lobby              GameStatus = "lobby"
+	InProgress         GameStatus = "in_progress"
+	CompleteGameStatus GameStatus = "complete"
 )
 
 // A single instance of a game.
 type GameInstance struct {
-	GameId  string             `json:"gameId"`
-	OwnerId string             `json:"ownerId"`
-	Status  GameStatus         `json:"status"`
-	Game    Game               `json:"game"`
-	Clients map[string]*Client `json:"clients"`
+	GameId  string
+	OwnerId string
+	Status  GameStatus
+	Game    Game
+	Clients map[string]*Client
 
 	// TODO unregister clients as well.
 	Register  chan *Client `json:"-"` // Channel to register new clients with the game instance.
@@ -87,10 +88,8 @@ func (gi *GameInstance) Run() {
 			log.Printf("broadcasting state to game instance %s", gi.GameId)
 
 			for _, client := range gi.Clients {
-				update := &StateUpdate{
-					ClientId: client.Id,
-					State:    *gi,
-				}
+				update := gi.ToClientStateBroadcast(client)
+				fmt.Printf("%+v", update)
 				bytes, err := update.Serialise()
 				if err != nil {
 					break

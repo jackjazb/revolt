@@ -1,3 +1,9 @@
+/*
+Defines the core game logic.
+
+Notes:
+- Players are generally referenced by a number.
+*/
 package main
 
 import (
@@ -11,19 +17,19 @@ const MaxPlayers = 6
 
 // An initial player action.
 type Action struct {
-	Type         ActionType
-	TargetPlayer int
+	Type         ActionType `json:"type"`
+	TargetPlayer int        `json:"targetPlayer"`
 }
 
 // A block action, holding a card being used for a block and the player who initiated the block.
 type Block struct {
-	Card      Card
-	Initiator int
+	Card      Card `json:"card"`
+	Initiator int  `json:"initiator"`
 }
 
 // A challenge action, holding the initiating player.
 type Challenge struct {
-	Initiator int
+	Initiator int `json:"initiator"`
 }
 
 // Represents the current state of a turn.

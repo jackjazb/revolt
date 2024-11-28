@@ -7,14 +7,14 @@ import (
 )
 
 // Defines types of card,
-type Card int
+type Card string
 
 const (
-	Duke Card = iota
-	Assassin
-	Ambassador
-	Captain
-	Contessa
+	Duke       Card = "duke"
+	Assassin   Card = "assassin"
+	Ambassador Card = "ambassador"
+	Captain    Card = "captain"
+	Contessa   Card = "contessa"
 )
 
 // Defines the state of a single player card.
@@ -70,17 +70,6 @@ var Deck = []Card{
 	Duke, Assassin, Ambassador, Captain, Contessa,
 	Duke, Assassin, Ambassador, Captain, Contessa,
 	Duke, Assassin, Ambassador, Captain, Contessa,
-}
-
-// Formats a card.
-func (i Card) String() string {
-	return []string{
-		"Duke",
-		"Assassin",
-		"Ambassador",
-		"Captain",
-		"Contessa",
-	}[i]
 }
 
 // Shuffles a list of cards.

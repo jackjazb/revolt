@@ -1,40 +1,9 @@
-export enum MessageType {
-    CreateGame = 'create_game',
-    JoinGame = 'join_game',
-    StartGame = 'start_game',
-}
+import { MessageType, type Message, type StateUpdate } from "./types";
 
-export interface StateUpdate {
-    clientId: string;
-    state: State;
-}
-export enum GameStatus {
-
-}
-
-export interface Message {
-    type: MessageType,
-    payload?: Record<string, any>;
-}
-
-// All the information about a collected connected peer a client is allowed to have.
-export interface Peer {
-    name: string;
-    number: number;
-}
-
-export interface State {
-    gameId: string,
-    ownerId: string,
-    status: GameStatus,
-    game: Record<string, any>;
-    clients: Record<string, Peer>;
-}
 export class Client {
 
     private socket?: WebSocket;
-    private clientId?: string;
-    private state?: State;
+    state?: StateUpdate;
 
     async connect(uri: string) {
         const socket = new WebSocket(uri);
@@ -80,10 +49,9 @@ export class Client {
             return;
         }
         const message = JSON.parse(event.data) as StateUpdate;
-        this.clientId = message.clientId;
-        this.state = message.state;
+        this.state = message;
 
-        console.log('my id:', this.clientId);
+        console.log('my id:', this.state.clientId);
         console.log(JSON.stringify(this.state, undefined, 2));
 
     }
