@@ -2,18 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
-
-func Id() string {
-	// TODO this should be a full length UUID, but 8 chars is easier to read in development.
-	return uuid.NewString()[:8]
-}
 
 // Unmarshals a payload interface, allowing type assignment.
 func UnmarshalPayload(payload interface{}, v any) error {
@@ -28,84 +21,13 @@ func UnmarshalPayload(payload interface{}, v any) error {
 	return nil
 }
 
-// The status of a given instance.
-type GameStatus string
-
-// Defines possible instance statuses.
-const (
-	Lobby              GameStatus = "lobby"
-	InProgress         GameStatus = "in_progress"
-	CompleteGameStatus GameStatus = "complete"
-)
-
-// A single instance of a game.
-type GameInstance struct {
-	GameId  string
-	OwnerId string
-	Status  GameStatus
-	Game    Game
-	Clients map[string]*Client
-
-	// TODO unregister clients as well.
-	Register  chan *Client `json:"-"` // Channel to register new clients with the game instance.
-	SendState chan bool    `json:"-"` // Channel to trigger a state broadcast
-}
-
-func NewGameInstance(ownerId string) GameInstance {
-	return GameInstance{
-		GameId:    Id(),
-		OwnerId:   ownerId,
-		Status:    Lobby,
-		Clients:   make(map[string]*Client),
-		Game:      NewGame(),
-		Register:  make(chan *Client),
-		SendState: make(chan bool),
-	}
-}
-
-// Receives client registrations and broadcast messages on their respective channels and handles them.
-func (gi *GameInstance) Run() {
-	log.Printf("running new game instance %s", gi.GameId)
-	for {
-		select {
-
-		// Registers a client with the current game instance.
-		case client := <-gi.Register:
-			client.Log("registering client with game %s...", gi.GameId)
-
-			// Add the player to the current game instance.
-			number, err := gi.Game.AddPlayer()
-			if err != nil {
-				client.Log("error registering client with game instance")
-				continue
-			}
-
-			client.Number = number
-			gi.Clients[client.Id] = client
-
-		// Triggers a broadcast of the current instance state to all connected clients.
-		case <-gi.SendState:
-			log.Printf("broadcasting state to game instance %s", gi.GameId)
-
-			for _, client := range gi.Clients {
-				update := gi.ToClientStateBroadcast(client)
-				fmt.Printf("%+v", update)
-				bytes, err := update.Serialise()
-				if err != nil {
-					break
-				}
-				client.Send <- bytes
-			}
-		}
-	}
-}
-
 // Global game instance tracker.
 type InstanceManager struct {
-	Instances map[string]GameInstance
+	// Maps IDs to game instance pointers (this allows modification)
+	Instances map[string]*GameInstance
 }
 
-func (im *InstanceManager) RegisterInstance(instance GameInstance) {
+func (im *InstanceManager) RegisterInstance(instance *GameInstance) {
 	im.Instances[instance.GameId] = instance
 }
 
@@ -123,11 +45,7 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
-	client := Client{
-		Id:         Id(),
-		Connection: conn,
-		Send:       make(chan []byte),
-	}
+	client := NewClient(conn)
 
 	// Listen for messages and write them when received.
 	go client.HandleMessages()
@@ -150,7 +68,10 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				websocket.CloseGoingAway,
 				websocket.CloseNoStatusReceived:
 				client.Log("connection closed by client")
+
 				close(client.Send)
+				delete(currentInstance.Clients, client.Id)
+				currentInstance.SendState <- true
 				return err
 			}
 		}
@@ -165,19 +86,27 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 		log.Printf("received message %+v", message)
 
 		switch message.Type {
-		case CreateGame:
+		case CreateGameMessage:
+			var payload CreateGamePayload
+			err := UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("invalid message payload: %s", message.Payload)
+				break
+			}
+
 			// Register the instance in the global context.
 			instance := NewGameInstance(client.Id)
-			im.RegisterInstance(instance)
+			im.RegisterInstance(&instance)
 			currentInstance = &instance
+
 			// Run handler for client connections and message broadcasts.
 			go instance.Run()
 
 			// Register the caller.
 			instance.Register <- &client
 			instance.SendState <- true
-		case JoinGame:
-			var payload JoinGameMessage
+		case JoinGameMessage:
+			var payload JoinGamePayload
 			err := UnmarshalPayload(message.Payload, &payload)
 			if err != nil {
 				client.Log("invalid message payload: %s", message.Payload)
@@ -189,20 +118,60 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				client.Log("instance with id %s not found", payload.GameId)
 				break
 			}
-			currentInstance = &instance
+			client.Name = payload.PlayerName
+			currentInstance = instance
 			instance.Register <- &client
 			instance.SendState <- true
-		case StartGame:
+		case StartGameMessage:
 			if currentInstance == nil {
-				client.Log("client not currently connected to a game")
+				client.Log("can't start game (not connected to one)")
 				break
 			}
 			if client.Id != currentInstance.OwnerId {
-				client.Log("can't start game - owned by %s", currentInstance.OwnerId)
+				client.Log("can't start game (owned by %s)", currentInstance.OwnerId)
 				break
 			}
 			currentInstance.Game.Deal()
 			currentInstance.Status = InProgress
+			currentInstance.SendState <- true
+		case AttemptActionMessage:
+			if currentInstance == nil {
+				client.Log("can't attempt action - not connected to game")
+				break
+			}
+			var payload AttemptActionPayload
+			err = UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("error reading message: %s", err)
+				break
+			}
+			err = currentInstance.Game.AttemptAction(payload.Action)
+			if err != nil {
+				client.Log("couldn't attempt action: %s", err)
+				break
+			}
+			currentInstance.SendState <- true
+		case CommitTurnMessage:
+			if currentInstance == nil {
+				client.Log("can't commit turn - not connected to game")
+				break
+			}
+			err = currentInstance.Game.CommitTurn()
+			if err != nil {
+				client.Log("couldn't commit action: %s", err)
+				break
+			}
+			currentInstance.SendState <- true
+		case EndTurnMessage:
+			if currentInstance == nil {
+				client.Log("can't end turn - not connected to game")
+				break
+			}
+			err = currentInstance.Game.EndTurn()
+			if err != nil {
+				client.Log("couldn't end turn: %s", err)
+				break
+			}
 			currentInstance.SendState <- true
 		}
 	}
@@ -214,7 +183,7 @@ func RunServer() {
 
 	// Set up persistent instance tracking struct.
 	cm := InstanceManager{
-		Instances: make(map[string]GameInstance),
+		Instances: make(map[string]*GameInstance),
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

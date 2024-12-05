@@ -3,25 +3,32 @@ package main
 import (
 	"fmt"
 	"log"
+	"revolt/game"
 
 	"github.com/gorilla/websocket"
 )
 
 // Represents the state of a connected client.
 type Client struct {
-	Id         string          `json:"id"`
-	Name       string          `json:"name"`
-	Number     int             `json:"number"`
-	Connection *websocket.Conn `json:"-"`
-	Send       chan []byte     `json:"-"`
+	Id         string
+	Name       string
+	Connection *websocket.Conn
+	Send       chan []byte
 }
 
-// Sends messages received on the `Send` channel to connected the client.
+func NewClient(conn *websocket.Conn) Client {
+	return Client{
+		Id:         game.Id(),
+		Connection: conn,
+		Send:       make(chan []byte),
+	}
+}
+
 func (c *Client) HandleMessages() {
 	defer c.Connection.Close()
 	for message := range c.Send {
 		if err := c.Connection.WriteMessage(websocket.TextMessage, message); err != nil {
-			log.Println(err)
+			c.Log("error writing message: %s", err)
 			return
 
 		}

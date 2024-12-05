@@ -1,9 +1,28 @@
-import { MessageType, type Message, type StateUpdate } from "./types";
+import { type Action, type State } from "./types";
+
+export enum MessageType {
+    CreateGame = 'create_game',
+    JoinGame = 'join_game',
+    StartGame = 'start_game',
+    AttemptAction = 'attempt_action',
+    CommitTurn = 'commit_turn',
+    EndTurn = 'end_turn'
+}
+
+export interface Message {
+    type: MessageType,
+    payload?: Record<string, any>;
+}
 
 export class Client {
 
     private socket?: WebSocket;
-    state?: StateUpdate;
+    private onStateUpdate: (state: State) => void;
+    state?: State;
+
+    constructor(onStateUpdate: (state: State) => void) {
+        this.onStateUpdate = onStateUpdate;
+    }
 
     async connect(uri: string) {
         const socket = new WebSocket(uri);
@@ -16,17 +35,21 @@ export class Client {
         });
     }
 
-    createGame() {
+    createGame(playerName: string) {
         this.sendMessage({
-            type: MessageType.CreateGame
+            type: MessageType.CreateGame,
+            payload: {
+                playerName
+            }
         });
     }
 
-    joinGame(gameId: string) {
+    joinGame(gameId: string, playerName: string) {
         this.sendMessage({
             type: MessageType.JoinGame,
             payload: {
-                gameId
+                gameId,
+                playerName
             }
         });
     }
@@ -34,6 +57,27 @@ export class Client {
     startGame() {
         this.sendMessage({
             type: MessageType.StartGame,
+        });
+    }
+
+    attemptAction(action: Action) {
+        this.sendMessage({
+            type: MessageType.AttemptAction,
+            payload: {
+                action
+            }
+        });
+    }
+
+    commitTurn() {
+        this.sendMessage({
+            type: MessageType.CommitTurn,
+        });
+    }
+
+    endTurn() {
+        this.sendMessage({
+            type: MessageType.EndTurn
         });
     }
 
@@ -48,11 +92,9 @@ export class Client {
         if (!event.data) {
             return;
         }
-        const message = JSON.parse(event.data) as StateUpdate;
+        const message = JSON.parse(event.data) as State;
         this.state = message;
-
-        console.log('my id:', this.state.clientId);
-        console.log(JSON.stringify(this.state, undefined, 2));
-
+        this.onStateUpdate(this.state);
+        console.log('received state update:', JSON.stringify(this.state, undefined, 2));
     }
 }

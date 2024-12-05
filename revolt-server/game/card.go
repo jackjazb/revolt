@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-// Defines types of card,
+// Defines the different types of card in the game.
 type Card string
 
 const (
@@ -17,35 +17,39 @@ const (
 	Contessa   Card = "contessa"
 )
 
-// Defines the state of a single player card.
+// Defines the state of a single card in a player's hand.
 type CardState struct {
 	Card  Card `json:"card"`
 	Alive bool `json:"alive"`
 }
 
-// Defines possible player actions.
-type ActionType int
+// Defines possible player actions granted by cards.
+type ActionType string
 
 const (
-	Income ActionType = iota
-	ForeignAid
-	Tax
-	Assassinate
-	Revolt
-	Exchange
-	Steal
+	Income     ActionType = "income"
+	ForeignAid ActionType = "foreign_aid"
+	Revolt     ActionType = "revolt"
+
+	Tax         ActionType = "tax"
+	Assassinate ActionType = "assassinate"
+	Exchange    ActionType = "exchange"
+	Steal       ActionType = "steal"
 )
 
-// Defines which cards grant which actions.
-var RequiredCard = map[ActionType]Card{
-	Tax:         Duke,
-	Assassinate: Assassin,
-	Exchange:    Ambassador,
-	Steal:       Captain,
+// Defines actions which do not need a card to perform.
+var DefaultGrants = []ActionType{Income, ForeignAid, Revolt}
+
+// Defines the actions granted by each type of card.
+var CardGrants = map[Card]ActionType{
+	Duke:       Tax,
+	Assassin:   Assassinate,
+	Ambassador: Exchange,
+	Captain:    Steal,
 }
 
 // Defines which characters can block which actions.
-var Blocks = map[Card]ActionType{
+var CardBlocks = map[Card]ActionType{
 	Duke:       ForeignAid,
 	Contessa:   Assassinate,
 	Captain:    Steal,
@@ -91,4 +95,13 @@ func ShuffleCards(cards []Card) []Card {
 		shuffled = append(shuffled, deck[0])
 	}
 	return shuffled
+}
+
+// Check if a card blocks an action.
+func (c Card) BlocksAction(action ActionType) bool {
+	blocks, ok := CardBlocks[c]
+	if ok && blocks == action {
+		return true
+	}
+	return false
 }

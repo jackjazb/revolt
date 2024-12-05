@@ -1,17 +1,22 @@
 /*
-Defines the core game logic.
+Defines the core game state machine.
 
 Notes:
 - Players are generally referenced by a number.
 */
-package main
+package game
 
 import (
 	"errors"
 	"fmt"
-	"log"
-	"slices"
+
+	"github.com/google/uuid"
 )
+
+func Id() string {
+	// TODO this should be a full length UUID, but 8 chars is easier to read in development.
+	return uuid.NewString()[:8]
+}
 
 const MaxPlayers = 6
 
@@ -33,32 +38,18 @@ type Challenge struct {
 }
 
 // Represents the current state of a turn.
-type TurnState int
+type TurnState string
 
 const (
-	Default TurnState = iota
-	ActionPending
-	BlockPending
-	ExchangePending
-	PlayerLostChallenge
-	LeaderLostChallenge
-	PlayerKilled
-	Finished
+	Default             TurnState = "default"
+	ActionPending       TurnState = "action_pending"
+	BlockPending        TurnState = "block_pending"
+	ExchangePending     TurnState = "exchange_pending"
+	PlayerLostChallenge TurnState = "player_lost_challenge"
+	LeaderLostChallenge TurnState = "leader_lost_challenge"
+	PlayerKilled        TurnState = "player_killed"
+	Finished            TurnState = "finished"
 )
-
-// Formats a turn state.
-func (i TurnState) String() string {
-	return []string{
-		"Default",
-		"ActionPending",
-		"BlockPending",
-		"ExchangePending",
-		"PlayerLostChallenge",
-		"LeaderLostChallenge",
-		"PlayerKilled",
-		"Finished",
-	}[i]
-}
 
 // Represents the current game state.
 type Game struct {
@@ -88,37 +79,24 @@ func NewGame() Game {
 }
 
 // Adds a player to the game, returning their player number.
-func (g *Game) AddPlayer() (int, error) {
+func (g *Game) AddPlayer(id string, name string) error {
 	if len(g.Players) >= MaxPlayers {
-		return 0, errors.New("attempted to add player to a full game")
+		return errors.New("attempted to add player to a full game")
 	}
-	player := Player{
-		Cards:   [2]CardState{},
-		Credits: 2,
-	}
-	g.Players = append(g.Players, player)
-	log.Println(g.Players)
-	return len(g.Players) - 1, nil
+	g.Players = append(g.Players, NewPlayer(id, name))
+	return nil
 }
 
 // Deals two cards to each players in the current game.
 func (g *Game) Deal() {
 	playerCount := len(g.Players)
-	fmt.Println(g.Players)
 	for i := range playerCount * 2 {
 		// Remove the last card from the active deck and give it to the player.
 		index := len(g.Deck) - 1
 		card := g.Deck[index]
 		g.Deck = g.Deck[:index]
-
-		cardState := CardState{
-			Card:  card,
-			Alive: true,
-		}
-
-		g.Players[i%playerCount].Cards[i/playerCount] = cardState
+		g.Players[i%playerCount].GiveCard(card)
 	}
-	fmt.Printf("players after deal: %+v", g.Players)
 }
 
 // Transition from the default game state to ActionPending.
@@ -133,11 +111,9 @@ func (g *Game) AttemptAction(action Action) error {
 	}
 
 	// Cost is always applied, even if an action is blocked or challenged.
-	if cost, ok := ActionCost[action.Type]; ok {
-		if cost > leader.Credits {
-			return errors.New("cannot afford action")
-		}
-		leader.Credits -= cost
+	err := leader.PayForAction(action.Type)
+	if err != nil {
+		return err
 	}
 
 	g.PendingAction = action
@@ -152,12 +128,12 @@ func (g *Game) AttemptBlock(block Block) error {
 	}
 
 	// Check the card being used blocks the current pending action.
-	blocks, ok := Blocks[block.Card]
-	if !ok || blocks != g.PendingAction.Type {
+	if !block.Card.BlocksAction(g.PendingAction.Type) {
 		return errors.New("card does not block current pending action")
 	}
 
 	g.PendingBlock = block
+	g.TurnState = BlockPending
 	return nil
 }
 
@@ -175,17 +151,11 @@ func (g *Game) Challenge(challenge Challenge) error {
 	*/
 	if g.TurnState == ActionPending {
 		leader := g.Players[g.Leader]
-		requiredCard, ok := RequiredCard[g.PendingAction.Type]
+		if leader.IsAllowedAction(g.PendingAction.Type) {
+			g.TurnState = PlayerLostChallenge
+			return nil
+		}
 
-		// If the current action is not in RequiredCards, no card is needed and the challenge fails.
-		if !ok {
-			g.TurnState = PlayerLostChallenge
-			return nil
-		}
-		if slices.Contains(leader.GetCards(), requiredCard) {
-			g.TurnState = PlayerLostChallenge
-			return nil
-		}
 		g.TurnState = LeaderLostChallenge
 		return nil
 	}
@@ -196,17 +166,9 @@ func (g *Game) Challenge(challenge Challenge) error {
 	*/
 	if g.TurnState == BlockPending {
 		blocker := g.Players[g.PendingBlock.Initiator]
-		requiredCards, ok := BlockedBy[g.PendingAction.Type]
-		// If the action cannot be blocked, the challenge fails (shouldn't get here anyway)
-		if !ok {
-			g.TurnState = PlayerLostChallenge
+		if blocker.CanBlock(g.PendingAction.Type) {
+			g.TurnState = LeaderLostChallenge
 			return nil
-		}
-		for _, card := range requiredCards {
-			if slices.Contains(blocker.GetCards(), card) {
-				g.TurnState = LeaderLostChallenge
-				return nil
-			}
 		}
 		g.TurnState = PlayerLostChallenge
 		return nil
@@ -223,21 +185,21 @@ func (g *Game) ResolveDeath(card int) error {
 
 	// If a player has lost a challenge, return to ActionPending
 	if g.TurnState == PlayerLostChallenge {
-		g.Players[g.PendingChallenge.Initiator].Cards[card].Alive = false
+		g.Players[g.PendingChallenge.Initiator].KillCard(card)
 		g.TurnState = ActionPending
 		return nil
 	}
 
 	// If the leader has lost the challenge, the turn is over.
 	if g.TurnState == LeaderLostChallenge {
-		g.Players[g.Leader].Cards[card].Alive = false
+		g.Players[g.Leader].KillCard(card)
 		g.TurnState = Finished
 		return nil
 	}
 
 	// If a player has been killed (assassinated or coup'd), the turn is over.
 	if g.TurnState == PlayerKilled {
-		g.Players[g.PendingAction.TargetPlayer].Cards[card].Alive = false
+		g.Players[g.PendingAction.TargetPlayer].KillCard(card)
 		g.TurnState = Finished
 		return nil
 	}
@@ -258,30 +220,31 @@ func (g *Game) CommitTurn() error {
 
 	switch g.PendingAction.Type {
 	case Income:
-		g.Players[g.Leader].Credits += 1
+		g.Players[g.Leader].AdjustCredits(1)
 		g.TurnState = Finished
 
 	case ForeignAid:
-		g.Players[g.Leader].Credits += 2
+		g.Players[g.Leader].AdjustCredits(2)
 		g.TurnState = Finished
 
 	case Revolt, Assassinate:
 		g.TurnState = PlayerKilled
 	case Tax:
-		g.Players[g.Leader].Credits += 3
+		g.Players[g.Leader].AdjustCredits(3)
 		g.TurnState = Finished
 
+	// TODO not sure we even want this?
 	case Exchange:
 		// Draw two cards, select two from hand, return two to deck.
 		g.TurnState = Finished
 
 	case Steal:
 		targetPlayer := g.PendingAction.TargetPlayer
-		g.Players[targetPlayer].Credits -= 2
-		g.Players[g.Leader].Credits += 2
+		g.Players[targetPlayer].AdjustCredits(-2)
+		g.Players[g.Leader].AdjustCredits(2)
 		g.TurnState = Finished
 	default:
-		return fmt.Errorf("tried to commit an unknown action %d", g.PendingAction.Type)
+		return fmt.Errorf("tried to commit an unknown action %v", g.PendingAction.Type)
 	}
 
 	return nil

@@ -1,9 +1,15 @@
+/*
+Generally, types defined in this file match the JSON messages sent by the server.
+*/
 
+import type { Client } from "./Client";
 
+export type IconType = 'dice' | 'coin';
 /**
  * Possible card types
  */
 export enum Card {
+    Empty = "",
     Duke = "duke",
     Assassin = "assassin",
     Ambassador = "ambassador",
@@ -11,39 +17,39 @@ export enum Card {
     Contessa = "contessa",
 }
 
-export enum MessageType {
-    CreateGame = 'create_game',
-    JoinGame = 'join_game',
-    StartGame = 'start_game',
+/**
+ * Possible types of action
+ */
+export enum ActionType {
+    Income = "income",
+    ForeignAid = "foreign_aid",
+    Tax = "tax",
+    Assassinate = "assassinate",
+    Revolt = "revolt",
+    Exchange = "exchange",
+    Steal = "steal",
 }
 
-export interface StateUpdate {
-    gameId: string,
-    ownerId: string,
-    clientId: string,
-    leader: number,
-    number: number,
-    status: string,
-    clients: [],
-    self: {
-        cards: {
-            card: Card,
-            alive: boolean;
-        }[],
-        credits: number;
-    },
-    turnState: number,
-    pendingAction: {
-        type: number,
-        targetPlayer: number;
-    },
-    pendingBlock: {
-        card: string,
-        initiator: number;
-    },
-    pendingChallenge: {
-        initiator: number;
-    };
+/**
+ * An attempt to perform an action by a player.
+ */
+export interface Action {
+    type: ActionType,
+    target?: number;
+}
+
+/**
+ * Possible states for a turn.
+ */
+export enum TurnState {
+    Default = "default",
+    ActionPending = "action_pending",
+    BlockPending = "block_pending",
+    ExchangePending = "exchange_pending",
+    PlayerLostChallenge = "player_lost_challenge",
+    LeaderLostChallenge = "leader_lost_challenge",
+    PlayerKilled = "player_killed",
+    Finished = "finished",
 }
 
 /**
@@ -55,21 +61,52 @@ export enum GameStatus {
     CompleteGameStatus = "complete",
 }
 
-export interface Message {
-    type: MessageType,
-    payload?: Record<string, any>;
+export interface CardState {
+    card: Card,
+    alive: boolean;
 }
 
-// All the information about a collected connected peer a client is allowed to have.
+export interface Block {
+    card: Card;
+    initiator: number;
+}
+
+export interface Challenge {
+    initiator: number;
+}
+
 export interface Peer {
+    id: string;
     name: string;
-    number: number;
+    number: string;
 }
-
+/**
+ * A state update received from the server.
+ */
 export interface State {
     gameId: string,
     ownerId: string,
+    clientId: string,
+    clientName: string;
+    leader: number,
+    isLeader: boolean;
+    number: number,
     status: GameStatus,
-    game: Record<string, unknown>;
-    clients: Record<string, Peer>;
+    clients: Peer[],
+    turnState: TurnState,
+    pendingAction: Action;
+    pendingBlock: Block;
+    pendingChallenge: Challenge;
+    self: {
+        cards: CardState[],
+        credits: number;
+    },
+}
+
+/**
+ * Type for props of components that need to render game stuff.
+ */
+export interface GameComponentContext {
+    gameState: State;
+    client: Client;
 }
