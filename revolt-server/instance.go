@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"revolt/game"
+	"time"
 )
 
 // The status of a given instance.
@@ -79,6 +80,9 @@ func (gi *GameInstance) Run() {
 // A client state update.
 // This should contain everything a client needs to play, but nothing that would allow cheating.
 type ClientStateBroadcast struct {
+	// ISO timestamp
+	Timestamp time.Time `json:"timestamp"`
+
 	// Session and client info.
 	GameId  string     `json:"gameId"`
 	OwnerId string     `json:"ownerId"`
@@ -87,8 +91,6 @@ type ClientStateBroadcast struct {
 	Status  GameStatus `json:"status"`
 
 	// Game info.
-	Leader           int            `json:"leader"`
-	PlayerNumber     int            `json:"number"`
 	TurnState        game.TurnState `json:"turnState"`
 	PendingAction    game.Action    `json:"pendingAction"`
 	PendingBlock     game.Block     `json:"pendingBlock"`
@@ -118,32 +120,36 @@ func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadc
 	// Collect relevant information
 	peers := []Peer{}
 	self := Peer{}
-	for i, player := range gi.Game.Players {
-		dead := player.GetDeadCards()
+	i := 0
+	for id, player := range gi.Game.Players {
+		// We only want to send other player's dead cards.
 		peer := Peer{
-			Id:      player.Id,
+			Id:      id,
 			Name:    player.Name,
-			Cards:   dead,
+			Cards:   player.GetDeadCards(),
 			Credits: player.Credits,
 			Leading: i == gi.Game.Leader,
 		}
+		i++
+
 		if player.Id == client.Id {
+			peer.Cards = player.Cards
 			self = peer
 			continue
 		}
-		// We only want to send other player's dead cards.
 		peers = append(peers, peer)
 	}
 
 	return ClientStateBroadcast{
-		GameId:  gi.GameId,
-		OwnerId: gi.OwnerId,
-		Self:    self,
-		Peers:   peers,
-		Status:  gi.Status,
+		Timestamp: time.Now(),
+		GameId:    gi.GameId,
+		OwnerId:   gi.OwnerId,
+		Status:    gi.Status,
+		TurnState: gi.Game.TurnState,
 
-		Leader:           gi.Game.Leader,
-		TurnState:        gi.Game.TurnState,
+		Self:  self,
+		Peers: peers,
+
 		PendingAction:    gi.Game.PendingAction,
 		PendingBlock:     gi.Game.PendingBlock,
 		PendingChallenge: gi.Game.PendingChallenge,

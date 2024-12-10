@@ -101,6 +101,7 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 
 			// Run handler for client connections and message broadcasts.
 			go instance.Run()
+			client.Name = payload.PlayerName
 
 			// Register the caller.
 			instance.Register <- &client

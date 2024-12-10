@@ -2,7 +2,6 @@
 Generally, types defined in this file match the JSON messages sent by the server.
 */
 
-import type { Client } from "./Client";
 
 export type IconType = 'dice' | 'coin';
 /**
@@ -56,6 +55,7 @@ export enum TurnState {
  * The status of a game
  */
 export enum GameStatus {
+    Default = "default",
     Lobby = "lobby",
     InProgress = "in_progress",
     CompleteGameStatus = "complete",
@@ -75,38 +75,43 @@ export interface Challenge {
     initiator: number;
 }
 
+/**
+ * A player - can be the player or a peer.
+ */
 export interface Peer {
     id: string;
     name: string;
-    number: string;
+    cards: CardState[];
+    credits: number;
+    leading: boolean;
 }
 /**
  * A state update received from the server.
  */
 export interface State {
+    timestamp: string,
     gameId: string,
-    ownerId: string,
-    clientId: string,
-    clientName: string;
-    leader: number,
-    isLeader: boolean;
-    number: number,
+    ownerId: string;
+    self: Peer;
+    peers: Peer[];
     status: GameStatus,
-    clients: Peer[],
     turnState: TurnState,
-    pendingAction: Action;
-    pendingBlock: Block;
-    pendingChallenge: Challenge;
+    pendingAction?: Action;
+    pendingBlock?: Block;
+    pendingChallenge?: Challenge;
+}
+export const initialState: State = {
+    timestamp: "",
+    gameId: "",
+    ownerId: "",
     self: {
-        cards: CardState[],
-        credits: number;
+        id: "",
+        name: "",
+        cards: [],
+        credits: 0,
+        leading: false
     },
-}
-
-/**
- * Type for props of components that need to render game stuff.
- */
-export interface GameComponentContext {
-    gameState: State;
-    client: Client;
-}
+    peers: [],
+    status: GameStatus.Default,
+    turnState: TurnState.Default,
+};

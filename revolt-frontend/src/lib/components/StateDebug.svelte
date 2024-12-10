@@ -1,24 +1,23 @@
 <script lang="ts">
-    import { Card, type State } from "../types";
-
-    let { gameState }: { gameState: State } = $props();
+    import { global } from "../state.svelte";
+    import { Card } from "../types";
 </script>
 
 <div class="font-mono">
     <p>
-        game ID: {gameState.gameId}
+        game ID: {global.state.gameId}
     </p>
     <p>
-        client ID: {gameState.clientId}
+        client ID: {global.state.self.id}
     </p>
     <p>
-        status: {gameState.status}
+        status: {global.state.status}
     </p>
     <p>
-        leading : {gameState.isLeader}
+        leading: {global.state.self.leading}
     </p>
     <p>
-        my cards: {gameState.self.cards
+        my cards: {global.state.self.cards
             .filter((c) => c.card !== Card.Empty)
             .map((c) => c.card)
             .join(", ")}

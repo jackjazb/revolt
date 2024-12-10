@@ -1,13 +1,39 @@
 <script lang="ts">
-    import type { State } from "../types";
-
-    let { gameState }: { gameState: State } = $props();
+    import { global } from "../state.svelte";
+    import Button from "./atomic/Button.svelte";
+    import Card from "./atomic/Card.svelte";
+    import Subtitle from "./atomic/Subtitle.svelte";
+    import Table from "./atomic/Table.svelte";
+    import Title from "./atomic/Title.svelte";
 </script>
 
-<h1 class="text-xl">in lobby</h1>
+<Card class="flex-col">
+    <Title>lobby</Title>
+    <div class="flex gap-2">
+        <Subtitle
+            >game id: <span class="font-mono">{global.state.gameId}</span
+            ></Subtitle
+        >
+    </div>
 
-<ul class="list-disc">
-    {#each gameState.clients as client}
-        <li>{client.name}</li>
-    {/each}
-</ul>
+    <Table
+        headers={["peers"]}
+        data={[[global.state.self.name], global.state.peers.map((p) => p.name)]}
+    >
+        {#snippet row(peer)}
+            <tr>
+                <td class="p-1 border-neutral-500 border">
+                    {peer[0]}
+                </td>
+            </tr>
+        {/snippet}</Table
+    >
+
+    {#if global.state.ownerId === global.state.self.id}
+        <Button onclick={() => global.client.startGame()} class="ml-auto"
+            >start game</Button
+        >
+    {:else}
+        <Subtitle>waiting for leader to start...</Subtitle>
+    {/if}
+</Card>

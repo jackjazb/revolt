@@ -23,18 +23,18 @@ const MaxPlayers = 6
 // An initial player action.
 type Action struct {
 	Type         ActionType `json:"type"`
-	TargetPlayer int        `json:"targetPlayer"`
+	TargetPlayer string     `json:"targetPlayer"`
 }
 
 // A block action, holding a card being used for a block and the player who initiated the block.
 type Block struct {
-	Card      Card `json:"card"`
-	Initiator int  `json:"initiator"`
+	Card      Card   `json:"card"`
+	Initiator string `json:"initiator"`
 }
 
 // A challenge action, holding the initiating player.
 type Challenge struct {
-	Initiator int `json:"initiator"`
+	Initiator string `json:"initiator"`
 }
 
 // Represents the current state of a turn.
@@ -54,7 +54,8 @@ const (
 // Represents the current game state.
 type Game struct {
 	Deck             []Card
-	Players          []Player
+	Players          map[string]*Player
+	Order            []string
 	Leader           int
 	TurnState        TurnState
 	PendingAction    Action
@@ -68,7 +69,8 @@ func NewGame() Game {
 
 	game := Game{
 		Deck:             shuffled,
-		Players:          []Player{},
+		Players:          make(map[string]*Player),
+		Order:            []string{},
 		Leader:           0,
 		PendingAction:    Action{},
 		PendingBlock:     Block{},
@@ -83,8 +85,28 @@ func (g *Game) AddPlayer(id string, name string) error {
 	if len(g.Players) >= MaxPlayers {
 		return errors.New("attempted to add player to a full game")
 	}
-	g.Players = append(g.Players, NewPlayer(id, name))
+
+	player := NewPlayer(id, name)
+	g.Players[id] = &player
+	g.Order = append(g.Order, id)
 	return nil
+}
+
+func (g *Game) GetLeader() *Player {
+	id := g.Order[g.Leader]
+	return g.Players[id]
+}
+
+func (g *Game) GetPlayerByIndex(index int) (*Player, error) {
+	if index > len(g.Players) {
+		return nil, errors.New("attempted to access out of range player")
+	}
+	id := g.Order[index]
+	player, ok := g.Players[id]
+	if !ok {
+		return nil, fmt.Errorf("player with id %s not found", id)
+	}
+	return player, nil
 }
 
 // Deals two cards to each players in the current game.
@@ -95,7 +117,11 @@ func (g *Game) Deal() {
 		index := len(g.Deck) - 1
 		card := g.Deck[index]
 		g.Deck = g.Deck[:index]
-		g.Players[i%playerCount].GiveCard(card)
+		p, err := g.GetPlayerByIndex(i % playerCount)
+		if err != nil {
+			panic("player order not set up correctly")
+		}
+		p.GiveCard(card)
 	}
 }
 
@@ -104,10 +130,11 @@ func (g *Game) AttemptAction(action Action) error {
 	if !g.StateIn(Default) {
 		return errors.New("action already in play")
 	}
-	leader := &g.Players[g.Leader]
+	leader := g.GetLeader()
 
-	if action.TargetPlayer > len(g.Players)-1 {
-		return errors.New("target player out of range")
+	_, ok := g.Players[action.TargetPlayer]
+	if action.TargetPlayer != "" && !ok {
+		return errors.New("target player does not exist")
 	}
 
 	// Cost is always applied, even if an action is blocked or challenged.
@@ -143,6 +170,10 @@ func (g *Game) Challenge(challenge Challenge) error {
 		return errors.New("no action or block to challenge")
 	}
 
+	if _, ok := g.Players[challenge.Initiator]; !ok {
+		return fmt.Errorf("invalid challenge initiator: %s", challenge.Initiator)
+	}
+
 	g.PendingChallenge = challenge
 
 	/*
@@ -150,7 +181,7 @@ func (g *Game) Challenge(challenge Challenge) error {
 		current action.
 	*/
 	if g.TurnState == ActionPending {
-		leader := g.Players[g.Leader]
+		leader := g.GetLeader()
 		if leader.IsAllowedAction(g.PendingAction.Type) {
 			g.TurnState = PlayerLostChallenge
 			return nil
@@ -185,6 +216,8 @@ func (g *Game) ResolveDeath(card int) error {
 
 	// If a player has lost a challenge, return to ActionPending
 	if g.TurnState == PlayerLostChallenge {
+		// TODO the pending challenge could be the leader if this is a failed block.
+		// Logic needs updating.
 		g.Players[g.PendingChallenge.Initiator].KillCard(card)
 		g.TurnState = ActionPending
 		return nil
@@ -192,7 +225,7 @@ func (g *Game) ResolveDeath(card int) error {
 
 	// If the leader has lost the challenge, the turn is over.
 	if g.TurnState == LeaderLostChallenge {
-		g.Players[g.Leader].KillCard(card)
+		g.GetLeader().KillCard(card)
 		g.TurnState = Finished
 		return nil
 	}
@@ -220,17 +253,17 @@ func (g *Game) CommitTurn() error {
 
 	switch g.PendingAction.Type {
 	case Income:
-		g.Players[g.Leader].AdjustCredits(1)
+		g.GetLeader().AdjustCredits(1)
 		g.TurnState = Finished
 
 	case ForeignAid:
-		g.Players[g.Leader].AdjustCredits(2)
+		g.GetLeader().AdjustCredits(2)
 		g.TurnState = Finished
 
 	case Revolt, Assassinate:
 		g.TurnState = PlayerKilled
 	case Tax:
-		g.Players[g.Leader].AdjustCredits(3)
+		g.GetLeader().AdjustCredits(3)
 		g.TurnState = Finished
 
 	// TODO not sure we even want this?
@@ -241,7 +274,7 @@ func (g *Game) CommitTurn() error {
 	case Steal:
 		targetPlayer := g.PendingAction.TargetPlayer
 		g.Players[targetPlayer].AdjustCredits(-2)
-		g.Players[g.Leader].AdjustCredits(2)
+		g.GetLeader().AdjustCredits(2)
 		g.TurnState = Finished
 	default:
 		return fmt.Errorf("tried to commit an unknown action %v", g.PendingAction.Type)
@@ -254,6 +287,7 @@ func (g *Game) EndTurn() error {
 	if !g.StateIn(Finished) {
 		return errors.New("turn not finished")
 	}
+
 	g.Leader = (g.Leader + 1) % len(g.Players)
 	g.TurnState = Default
 	return nil

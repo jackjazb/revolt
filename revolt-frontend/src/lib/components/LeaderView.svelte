@@ -2,15 +2,16 @@
 The base game view for the leader, primarily allowing action choice.
 -->
 <script lang="ts">
-    import { ActionType, TurnState, type GameComponentContext } from "../types";
-
-    let { gameState, client }: GameComponentContext = $props();
+    import { global } from "../state.svelte";
+    import { ActionType, TurnState } from "../types";
+    import Button from "./atomic/Button.svelte";
+    import Title from "./atomic/Title.svelte";
 
     // Leaders can end their turn after a timeout.
     let timeout = $state(3000);
 
     $effect(() => {
-        if (gameState.turnState !== TurnState.ActionPending) {
+        if (global.state.turnState !== TurnState.ActionPending) {
             return;
         }
         let last_time = performance.now();
@@ -29,36 +30,39 @@ The base game view for the leader, primarily allowing action choice.
     });
 
     const income = () => {
-        client.attemptAction({
+        global.client.attemptAction({
             type: ActionType.Income,
         });
     };
     const commit = () => {
-        client.commitTurn();
+        global.client.commitTurn();
     };
     const end = () => {
-        client.endTurn();
+        global.client.endTurn();
     };
 </script>
 
-{#if gameState.turnState === TurnState.Default}
-    <button onclick={income}>income</button>
-    <button>foreign aid</button>
-    <button>tax</button>
-    <button>assassinate</button>
-    <button>revolt</button>
-    <button>exchange</button>
-    <button>steal</button>
-{:else if gameState.turnState === TurnState.ActionPending}
-    <h1>you've attempted {gameState.pendingAction.type}</h1>
-    {#if gameState.pendingAction.target}
-        <h2>targeting {gameState.pendingAction.target}!</h2>
+{#if global.state.turnState === TurnState.Default}
+    <Title>actions</Title>
+    <div class="flex flex-col gap-2">
+        <Button onclick={income}>income</Button>
+        <Button>foreign aid</Button>
+        <Button>tax</Button>
+        <Button>assassinate</Button>
+        <Button>revolt</Button>
+        <Button>exchange</Button>
+        <Button>steal</Button>
+    </div>
+{:else if global.state.turnState === TurnState.ActionPending && global.state.pendingAction}
+    <h1>you've attempted {global.state.pendingAction.type}</h1>
+    {#if global.state.pendingAction.target}
+        <h2>targeting {global.state.pendingAction.target}!</h2>
     {/if}
     <p>end turn in {(timeout / 1000).toFixed(2)}s</p>
-    <button disabled={timeout > 0} onclick={commit}>commit</button>
-{:else if gameState.turnState === TurnState.BlockPending}
+    <Button disabled={timeout > 0} onclick={commit}>commit</Button>
+{:else if global.state.turnState === TurnState.BlockPending}
     <h1>block pending</h1>
-{:else if gameState.turnState === TurnState.Finished}
+{:else if global.state.turnState === TurnState.Finished}
     <h1>finished</h1>
-    <button onclick={end}>end turn</button>
+    <Button onclick={end}>end turn</Button>
 {/if}

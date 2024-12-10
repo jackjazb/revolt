@@ -19,8 +19,8 @@ func TestAddPlayer(t *testing.T) {
 	t.Run("should add players to the game", func(t *testing.T) {
 		g := NewGame()
 
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
+		g.AddPlayer("0", "Test")
+		g.AddPlayer("1", "Test")
 
 		players := len(g.Players)
 		if players != 2 {
@@ -31,13 +31,13 @@ func TestAddPlayer(t *testing.T) {
 	t.Run("should reject too many players", func(t *testing.T) {
 		g := NewGame()
 
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
-		g.AddPlayer("id", "Test")
-		err := g.AddPlayer("id", "Test")
+		g.AddPlayer("0", "Test")
+		g.AddPlayer("1", "Test")
+		g.AddPlayer("2", "Test")
+		g.AddPlayer("3", "Test")
+		g.AddPlayer("4", "Test")
+		g.AddPlayer("5", "Test")
+		err := g.AddPlayer("6", "Test")
 
 		if err == nil {
 			t.Error("expected error adding player , got nil")
@@ -48,10 +48,10 @@ func TestAddPlayer(t *testing.T) {
 func TestDeal(t *testing.T) {
 	t.Run("should give each player two cards", func(t *testing.T) {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 		g.Deal()
-		cards := len(g.Players[0].Cards)
+		cards := len(g.Players["0"].Cards)
 		if cards != 2 {
 			t.Error("incorrect player card count, expected 2 got", cards)
 		}
@@ -59,11 +59,11 @@ func TestDeal(t *testing.T) {
 
 	t.Run("should keep the right number of cards in play", func(t *testing.T) {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 		g.Deal()
-		playerOneCards := len(g.Players[0].Cards)
-		playerTwoCards := len(g.Players[1].Cards)
+		playerOneCards := len(g.Players["0"].Cards)
+		playerTwoCards := len(g.Players["1"].Cards)
 		deck := len(g.Deck)
 		cards := playerOneCards + playerTwoCards + deck
 		if cards != len(Deck) {
@@ -75,12 +75,12 @@ func TestDeal(t *testing.T) {
 func TestAttemptAction(t *testing.T) {
 	t.Run("should transition the game to the ActionPending state", func(t *testing.T) {
 		g := NewGame()
-		g.AddPlayer("1", "Test")
-		g.Players[0].AdjustCredits(1)
+		g.AddPlayer("0", "Test")
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 0,
+			TargetPlayer: "0",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -97,12 +97,12 @@ func TestAttemptAction(t *testing.T) {
 
 	t.Run("should not allow targeting an out of range player", func(t *testing.T) {
 		g := NewGame()
-		g.AddPlayer("1", "Test")
-		g.Players[0].AdjustCredits(1)
+		g.AddPlayer("0", "Test")
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 99,
+			TargetPlayer: "no-one",
 		})
 		if err == nil {
 			t.Error("expected an error, got nil")
@@ -111,18 +111,18 @@ func TestAttemptAction(t *testing.T) {
 
 	t.Run("should always apply action cost", func(t *testing.T) {
 		g := NewGame()
-		g.AddPlayer("1", "Test")
-		g.Players[0].AdjustCredits(1)
+		g.AddPlayer("0", "Test")
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 0,
+			TargetPlayer: "0",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
-		credits := g.Players[0].Credits
+		credits := g.Players["0"].Credits
 		if credits != 0 {
 			t.Errorf("expected 0 credits on player 1, got: %d", credits)
 		}
@@ -130,17 +130,17 @@ func TestAttemptAction(t *testing.T) {
 
 	t.Run("should not allow unaffordable actions", func(t *testing.T) {
 		g := NewGame()
-		g.AddPlayer("1", "Test")
+		g.AddPlayer("0", "Test")
 
 		err := g.AttemptAction(Action{
 			Type:         Revolt,
-			TargetPlayer: 0,
+			TargetPlayer: "0",
 		})
 		if err == nil {
 			t.Error("expected an error, got nil")
 		}
 
-		credits := g.Players[0].Credits
+		credits := g.Players["0"].Credits
 		if credits != 2 {
 			t.Errorf("expected 2 credits on player 1, got: %d", credits)
 		}
@@ -150,14 +150,14 @@ func TestAttemptAction(t *testing.T) {
 func TestAttemptBlock(t *testing.T) {
 	setup := func() (Game, error) {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 
-		g.Players[0].AdjustCredits(1)
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			return Game{}, err
@@ -172,7 +172,7 @@ func TestAttemptBlock(t *testing.T) {
 		}
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -189,7 +189,7 @@ func TestAttemptBlock(t *testing.T) {
 		}
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -197,8 +197,8 @@ func TestAttemptBlock(t *testing.T) {
 		if g.PendingBlock.Card != Contessa {
 			t.Errorf("expected block card to be Contessa, go: %s", g.PendingBlock.Card)
 		}
-		if g.PendingBlock.Initiator != 1 {
-			t.Errorf("expected initiator to be 1, got: %d", g.PendingBlock.Initiator)
+		if g.PendingBlock.Initiator != "1" {
+			t.Errorf("expected initiator to be 1, got: %s", g.PendingBlock.Initiator)
 		}
 	})
 	t.Run("should not allow cards which do not block the pending action to be used", func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestAttemptBlock(t *testing.T) {
 		}
 		err = g.AttemptBlock(Block{
 			Card:      Captain,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -220,21 +220,21 @@ func TestAttemptBlock(t *testing.T) {
 
 	t.Run("should not allow blocking unblockable actions", func(t *testing.T) {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 
-		g.Players[0].AdjustCredits(5)
+		g.Players["0"].AdjustCredits(5)
 
 		err := g.AttemptAction(Action{
 			Type:         Revolt,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -248,7 +248,7 @@ func TestAttemptBlock(t *testing.T) {
 		g := NewGame()
 		err := g.AttemptBlock(Block{
 			Card:      Captain,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -259,28 +259,28 @@ func TestAttemptBlock(t *testing.T) {
 func TestChallenge(t *testing.T) {
 	setup := func() Game {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 		return g
 	}
 
 	t.Run("should transition to PlayerLostChallenge if the leader is allowed their action", func(t *testing.T) {
 		g := setup()
-		g.Players[0].Cards = append(g.Players[0].Cards, CardState{
+		g.Players["0"].Cards = append(g.Players["0"].Cards, CardState{
 			Card:  Captain,
 			Alive: true,
 		})
 
 		err := g.AttemptAction(Action{
 			Type:         Steal,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -296,14 +296,14 @@ func TestChallenge(t *testing.T) {
 
 		err := g.AttemptAction(Action{
 			Type:         Steal,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -315,15 +315,15 @@ func TestChallenge(t *testing.T) {
 
 	t.Run("should transition to LeaderLostChallenge if the block initiator is allowed to block the leader", func(t *testing.T) {
 		g := setup()
-		g.Players[0].AdjustCredits(1)
-		g.Players[1].Cards = append(g.Players[1].Cards, CardState{
+		g.Players["0"].AdjustCredits(1)
+		g.Players["1"].Cards = append(g.Players["1"].Cards, CardState{
 			Card:  Contessa,
 			Alive: true,
 		})
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -331,14 +331,14 @@ func TestChallenge(t *testing.T) {
 
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 0,
+			Initiator: "0",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -350,11 +350,11 @@ func TestChallenge(t *testing.T) {
 
 	t.Run("should transition to PlayerLostChallenge if the block initiator is not allowed to block the leader", func(t *testing.T) {
 		g := setup()
-		g.Players[0].AdjustCredits(1)
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -362,14 +362,14 @@ func TestChallenge(t *testing.T) {
 
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 0,
+			Initiator: "0",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -384,8 +384,8 @@ func TestChallenge(t *testing.T) {
 func TestCommitTurn(t *testing.T) {
 	setup := func() Game {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 		return g
 	}
 
@@ -394,14 +394,14 @@ func TestCommitTurn(t *testing.T) {
 
 		err := g.AttemptAction(Action{
 			Type:         Steal,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 		err = g.AttemptBlock(Block{
 			Card:      Captain,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -432,7 +432,7 @@ func TestCommitTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 
-		credits := g.Players[0].Credits
+		credits := g.Players["0"].Credits
 		if credits != 3 {
 			t.Errorf("expected player to have 3 credits, got: %d", credits)
 		}
@@ -453,7 +453,7 @@ func TestCommitTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 
-		credits := g.Players[0].Credits
+		credits := g.Players["0"].Credits
 		if credits != 4 {
 			t.Errorf("expected player to have 4 credits, got: %d", credits)
 		}
@@ -474,7 +474,7 @@ func TestCommitTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 
-		credits := g.Players[0].Credits
+		credits := g.Players["0"].Credits
 		if credits != 5 {
 			t.Errorf("expected player to have 5 credits, got: %d", credits)
 		}
@@ -482,11 +482,11 @@ func TestCommitTurn(t *testing.T) {
 
 	t.Run("should apply assassinations", func(t *testing.T) {
 		g := setup()
-		g.Players[0].AdjustCredits(1)
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -504,11 +504,11 @@ func TestCommitTurn(t *testing.T) {
 
 	t.Run("should apply revolts", func(t *testing.T) {
 		g := setup()
-		g.Players[0].AdjustCredits(5)
+		g.Players["0"].AdjustCredits(5)
 
 		err := g.AttemptAction(Action{
 			Type:         Revolt,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -529,7 +529,7 @@ func TestCommitTurn(t *testing.T) {
 
 		err := g.AttemptAction(Action{
 			Type:         Steal,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -540,11 +540,11 @@ func TestCommitTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 
-		p1credits := g.Players[0].Credits
+		p1credits := g.Players["0"].Credits
 		if p1credits != 4 {
 			t.Errorf("expected player 1 to have 4 credits, got: %d", p1credits)
 		}
-		p2credits := g.Players[1].Credits
+		p2credits := g.Players["1"].Credits
 		if p2credits != 0 {
 			t.Errorf("expected player 2 to have 4 credits, got: %d", p2credits)
 		}
@@ -554,22 +554,22 @@ func TestCommitTurn(t *testing.T) {
 func TestResolveDeath(t *testing.T) {
 	setup := func() Game {
 		g := NewGame()
+		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
-		g.AddPlayer("2", "Test")
 		return g
 	}
 
 	t.Run("should resolve a pending death caused by a successful action", func(t *testing.T) {
 		g := setup()
-		g.Players[1].Cards = append(g.Players[1].Cards, CardState{
+		g.Players["0"].AdjustCredits(5)
+		g.Players["1"].Cards = append(g.Players["1"].Cards, CardState{
 			Card:  Contessa,
 			Alive: true,
 		})
-		g.Players[0].AdjustCredits(5)
 
 		err := g.AttemptAction(Action{
 			Type:         Revolt,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -583,27 +583,27 @@ func TestResolveDeath(t *testing.T) {
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
-		if g.Players[1].Cards[0].Alive {
+		if g.Players["1"].Cards[0].Alive {
 			t.Errorf("expected card to be dead")
 		}
 	})
 
 	t.Run("should resolve a pending death caused by a successfully challenged block", func(t *testing.T) {
 		g := setup()
-		g.Players[0].Cards = append(g.Players[0].Cards, CardState{
+		g.Players["0"].Cards = append(g.Players["0"].Cards, CardState{
 			Card:  Assassin,
 			Alive: true,
 		})
-		g.Players[0].AdjustCredits(1)
+		g.Players["0"].AdjustCredits(1)
 
-		g.Players[1].Cards = append(g.Players[1].Cards, CardState{
+		g.Players["1"].Cards = append(g.Players["1"].Cards, CardState{
 			Card:  Captain,
 			Alive: true,
 		})
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -611,14 +611,14 @@ func TestResolveDeath(t *testing.T) {
 
 		err = g.AttemptBlock(Block{
 			Card:      Contessa,
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 0,
+			Initiator: "0",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -629,29 +629,29 @@ func TestResolveDeath(t *testing.T) {
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
-		if g.Players[1].Cards[0].Alive {
+		if g.Players["1"].Cards[0].Alive {
 			t.Errorf("expected card to be dead")
 		}
 	})
 
 	t.Run("should resolve a pending death caused by a successfully challenged action", func(t *testing.T) {
 		g := setup()
-		g.Players[0].Cards = append(g.Players[0].Cards, CardState{
+		g.Players["0"].Cards = append(g.Players["0"].Cards, CardState{
 			Card:  Contessa,
 			Alive: true,
 		})
-		g.Players[0].AdjustCredits(1)
+		g.Players["0"].AdjustCredits(1)
 
 		err := g.AttemptAction(Action{
 			Type:         Assassinate,
-			TargetPlayer: 1,
+			TargetPlayer: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
 
 		err = g.Challenge(Challenge{
-			Initiator: 1,
+			Initiator: "1",
 		})
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -660,7 +660,7 @@ func TestResolveDeath(t *testing.T) {
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
-		if g.Players[0].Cards[0].Alive {
+		if g.Players["0"].Cards[0].Alive {
 			t.Errorf("expected card to be dead")
 		}
 	})
