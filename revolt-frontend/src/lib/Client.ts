@@ -5,6 +5,7 @@ export enum MessageType {
     JoinGame = 'join_game',
     StartGame = 'start_game',
     AttemptAction = 'attempt_action',
+    ResolveDeath = 'resolve_death',
     CommitTurn = 'commit_turn',
     EndTurn = 'end_turn'
 }
@@ -69,6 +70,19 @@ export class Client {
         });
     }
 
+    /**
+     * Moves the game on from a pending death state by killing `card` 
+     * on the next player to die.
+     */
+    resolveDeath(card: number) {
+        this.sendMessage({
+            type: MessageType.ResolveDeath,
+            payload: {
+                card
+            }
+        });
+    }
+
     commitTurn() {
         this.sendMessage({
             type: MessageType.CommitTurn,
@@ -85,6 +99,7 @@ export class Client {
         if (!this.socket) {
             return;
         }
+        console.log('sending message', JSON.stringify(message, undefined, 2));
         this.socket.send(JSON.stringify(message));
     }
 

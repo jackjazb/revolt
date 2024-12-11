@@ -34,7 +34,7 @@ export enum ActionType {
  */
 export interface Action {
     type: ActionType,
-    target?: number;
+    target?: string;
 }
 
 /**
@@ -68,11 +68,11 @@ export interface CardState {
 
 export interface Block {
     card: Card;
-    initiator: number;
+    initiator: string;
 }
 
 export interface Challenge {
-    initiator: number;
+    initiator: string;
 }
 
 /**
@@ -95,15 +95,18 @@ export interface State {
     self: Peer;
     peers: Peer[];
     status: GameStatus,
+    nextDeath: string,
     turnState: TurnState,
     pendingAction?: Action;
     pendingBlock?: Block;
     pendingChallenge?: Challenge;
 }
+
 export const initialState: State = {
     timestamp: "",
     gameId: "",
     ownerId: "",
+    nextDeath: "",
     self: {
         id: "",
         name: "",

@@ -20,7 +20,7 @@
     {:then _}
         {#if global.state.status === GameStatus.Default}
             <div class="flex flex-col gap-2">
-                <Card>
+                <Card row>
                     <TextInput
                         bind:value={playerNameInput}
                         placeholder="name"
@@ -39,7 +39,7 @@
                     >
                 </Card>
 
-                <Card>
+                <Card row>
                     <TextInput bind:value={gameIdInput} placeholder="game id" />
                     <Button
                         onclick={() =>

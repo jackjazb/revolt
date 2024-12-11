@@ -45,6 +45,23 @@ func TestAddPlayer(t *testing.T) {
 	})
 }
 
+func TestGetPlayerById(t *testing.T) {
+	t.Run("should return the player at a given point in the order", func(t *testing.T) {
+		g := NewGame()
+
+		g.AddPlayer("abc", "Test")
+		g.AddPlayer("def", "Test")
+
+		p, err := g.GetPlayerByIndex(0)
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		if p.Id != "abc" {
+			t.Errorf("expected ID to be abc, got %s", p.Id)
+		}
+	})
+}
+
 func TestDeal(t *testing.T) {
 	t.Run("should give each player two cards", func(t *testing.T) {
 		g := NewGame()
@@ -497,6 +514,10 @@ func TestCommitTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 
+		if g.NextDeath != "1" {
+			t.Errorf("expected next death to be in 1, got: %s", g.NextDeath)
+		}
+
 		if g.TurnState != PlayerKilled {
 			t.Errorf("expected game to be in PlayerKilled, got: %s", g.TurnState)
 		}
@@ -662,6 +683,56 @@ func TestResolveDeath(t *testing.T) {
 		}
 		if g.Players["0"].Cards[0].Alive {
 			t.Errorf("expected card to be dead")
+		}
+	})
+}
+
+func TestEndTurn(t *testing.T) {
+	setup := func() Game {
+		g := NewGame()
+		g.AddPlayer("0", "Test")
+		g.AddPlayer("1", "Test")
+		g.AddPlayer("2", "Test")
+		return g
+	}
+	t.Run("should advance the leader and transition the game back to the default state", func(t *testing.T) {
+		g := setup()
+		err := g.AttemptAction(Action{Type: Income})
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		err = g.CommitTurn()
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		err = g.EndTurn()
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		if g.Leader != 1 {
+			t.Errorf("expected 1 to be leader, go %d", g.Leader)
+		}
+	})
+
+	t.Run("should return the leader to 0 after a sufficient number of turns", func(t *testing.T) {
+		g := setup()
+		for range 3 {
+			err := g.AttemptAction(Action{Type: Income})
+			if err != nil {
+				t.Errorf("got error: %s", err)
+			}
+			err = g.CommitTurn()
+			if err != nil {
+				t.Errorf("got error: %s", err)
+			}
+			err = g.EndTurn()
+			if err != nil {
+				t.Errorf("got error: %s", err)
+			}
+		}
+
+		if g.Leader != 0 {
+			t.Errorf("expected 0 to be leader, go %d", g.Leader)
 		}
 	})
 }

@@ -1,14 +1,18 @@
 <script lang="ts">
-    import type { CardState } from "../types";
+    import type { Card, CardState } from "../types";
 
     const { cards }: { cards: CardState[] } = $props();
 </script>
 
-{#snippet card(text: string)}
+{#snippet card(card?: Card)}
     <div
         class="flex-1 flex items-center justify-center bg-neutral-800 rounded-md h-12"
     >
-        {text}
+        {#if card}
+            {card}
+        {:else}
+            ?
+        {/if}
     </div>
 {/snippet}
 
@@ -17,7 +21,7 @@
         {#if cards[i]}
             {@render card(cards[i].card)}
         {:else}
-            {@render card("?")}
+            {@render card()}
         {/if}
     {/each}
 </div>

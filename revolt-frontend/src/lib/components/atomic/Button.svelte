@@ -18,7 +18,10 @@
         rounded-sm border-transparent border bg-neutral-800
         py-1 px-2
         hover:border-blue-400 duration-200
-        focus:outline-4 ${rest.class}
+        focus:outline-4 
+        disabled:brightness-75
+        disabled:border-none
+        ${rest.class}
         `}
 >
     {@render children()}

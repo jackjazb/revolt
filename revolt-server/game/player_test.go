@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestGetCards(t *testing.T) {
+func TestGetLivingCards(t *testing.T) {
 	t.Run("should return a user's cards", func(t *testing.T) {
 		player := NewPlayer("id", "Test")
 		player.GiveCard(Ambassador)
@@ -19,7 +19,7 @@ func TestGetCards(t *testing.T) {
 		}
 	})
 
-	t.Run("should ignore non living cards", func(t *testing.T) {
+	t.Run("should ignore dead cards", func(t *testing.T) {
 		player := NewPlayer("id", "Test")
 		player.GiveCard(Duke)
 		player.GiveCard(Captain)
@@ -30,6 +30,22 @@ func TestGetCards(t *testing.T) {
 
 		if !reflect.DeepEqual(expected, result) {
 			t.Errorf("got %s expected %s", result, expected)
+		}
+	})
+}
+
+func TestGetDeadCards(t *testing.T) {
+	t.Run("should return only a user's dead cards", func(t *testing.T) {
+		player := NewPlayer("id", "Test")
+		player.GiveCard(Duke)
+		player.GiveCard(Captain)
+		player.KillCard(1)
+
+		expected := []CardState{{Card: Captain, Alive: false}}
+		result := player.GetDeadCards()
+
+		if !reflect.DeepEqual(expected, result) {
+			t.Errorf("got %v expected %v", result, expected)
 		}
 	})
 }

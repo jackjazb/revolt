@@ -1,6 +1,7 @@
 <script lang="ts">
     import { global } from "../state.svelte";
     import Card from "./atomic/Card.svelte";
+    import Subtitle from "./atomic/Subtitle.svelte";
     import Table from "./atomic/Table.svelte";
     import Title from "./atomic/Title.svelte";
     import LeaderView from "./LeaderView.svelte";
@@ -8,9 +9,9 @@
     import PeerView from "./PeerView.svelte";
 </script>
 
-<div class="flex w-full gap-4">
-    <Card>
-        <Title>players</Title>
+<div class="grid grid-cols-4 gap-2 w-full h-full">
+    <Card class="col-span-1 row-span-2">
+        <Title>game {global.state.gameId}</Title>
         <Table headers={["name", "credits", "cards"]} data={global.state.peers}>
             {#snippet row(peer)}
                 <tr>
@@ -27,14 +28,28 @@
             {/snippet}
         </Table>
     </Card>
-    <Card>
+    <Card class="col-start-2 col-span-4">
+        <div class="bg-neutral-800 p-2 mr-auto">
+            <Subtitle>{global.state.self.credits}₡</Subtitle>
+        </div>
+        <div class="flex gap-2">
+            {#each global.state.self.cards as card}
+                <div class="bg-neutral-800 p-2">
+                    <Subtitle>{card.card}</Subtitle>
+                    {#if card.alive}
+                        alive
+                    {:else}
+                        dead
+                    {/if}
+                </div>
+            {/each}
+        </div>
+    </Card>
+    <Card class="col-span-4">
         {#if global.state.self.leading}
             <LeaderView />
         {:else}
             <PeerView />
         {/if}
-    </Card>
-    <Card>
-        <Title>cards</Title>
     </Card>
 </div>

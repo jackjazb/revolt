@@ -92,6 +92,7 @@ type ClientStateBroadcast struct {
 
 	// Game info.
 	TurnState        game.TurnState `json:"turnState"`
+	NextDeath        string         `json:"nextDeath"`
 	PendingAction    game.Action    `json:"pendingAction"`
 	PendingBlock     game.Block     `json:"pendingBlock"`
 	PendingChallenge game.Challenge `json:"pendingChallenge"`
@@ -116,12 +117,11 @@ func (s *ClientStateBroadcast) Serialise() ([]byte, error) {
 }
 
 func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadcast {
-
 	// Collect relevant information
 	peers := []Peer{}
 	self := Peer{}
-	i := 0
-	for id, player := range gi.Game.Players {
+	for i, id := range gi.Game.Order {
+		player := gi.Game.Players[id]
 		// We only want to send other player's dead cards.
 		peer := Peer{
 			Id:      id,
@@ -130,7 +130,6 @@ func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadc
 			Credits: player.Credits,
 			Leading: i == gi.Game.Leader,
 		}
-		i++
 
 		if player.Id == client.Id {
 			peer.Cards = player.Cards
@@ -147,9 +146,9 @@ func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadc
 		Status:    gi.Status,
 		TurnState: gi.Game.TurnState,
 
-		Self:  self,
-		Peers: peers,
-
+		Self:             self,
+		Peers:            peers,
+		NextDeath:        gi.Game.NextDeath,
 		PendingAction:    gi.Game.PendingAction,
 		PendingBlock:     gi.Game.PendingBlock,
 		PendingChallenge: gi.Game.PendingChallenge,

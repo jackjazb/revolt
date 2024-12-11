@@ -23,7 +23,7 @@ const MaxPlayers = 6
 // An initial player action.
 type Action struct {
 	Type         ActionType `json:"type"`
-	TargetPlayer string     `json:"targetPlayer"`
+	TargetPlayer string     `json:"target"`
 }
 
 // A block action, holding a card being used for a block and the player who initiated the block.
@@ -58,6 +58,7 @@ type Game struct {
 	Order            []string
 	Leader           int
 	TurnState        TurnState
+	NextDeath        string
 	PendingAction    Action
 	PendingBlock     Block
 	PendingChallenge Challenge
@@ -72,6 +73,7 @@ func NewGame() Game {
 		Players:          make(map[string]*Player),
 		Order:            []string{},
 		Leader:           0,
+		NextDeath:        "",
 		PendingAction:    Action{},
 		PendingBlock:     Block{},
 		PendingChallenge: Challenge{},
@@ -127,7 +129,7 @@ func (g *Game) Deal() {
 
 // Transition from the default game state to ActionPending.
 func (g *Game) AttemptAction(action Action) error {
-	if !g.StateIn(Default) {
+	if !g.stateIn(Default) {
 		return errors.New("action already in play")
 	}
 	leader := g.GetLeader()
@@ -150,7 +152,7 @@ func (g *Game) AttemptAction(action Action) error {
 
 // Attempt to block a pending action with an card.
 func (g *Game) AttemptBlock(block Block) error {
-	if !g.StateIn(ActionPending) {
+	if !g.stateIn(ActionPending) {
 		return errors.New("no action to block")
 	}
 
@@ -166,7 +168,7 @@ func (g *Game) AttemptBlock(block Block) error {
 
 // If an action or block is pending, checks if the player who initiated the action has the correct card.
 func (g *Game) Challenge(challenge Challenge) error {
-	if !g.StateIn(ActionPending, BlockPending) {
+	if !g.stateIn(ActionPending, BlockPending) {
 		return errors.New("no action or block to challenge")
 	}
 
@@ -175,19 +177,21 @@ func (g *Game) Challenge(challenge Challenge) error {
 	}
 
 	g.PendingChallenge = challenge
+	leader := g.GetLeader()
 
 	/*
 		If an action is being challenged, check the leader has the necessary card for the
 		current action.
 	*/
 	if g.TurnState == ActionPending {
-		leader := g.GetLeader()
 		if leader.IsAllowedAction(g.PendingAction.Type) {
 			g.TurnState = PlayerLostChallenge
+			g.NextDeath = g.PendingChallenge.Initiator
 			return nil
 		}
 
 		g.TurnState = LeaderLostChallenge
+		g.NextDeath = leader.Id
 		return nil
 	}
 
@@ -199,9 +203,11 @@ func (g *Game) Challenge(challenge Challenge) error {
 		blocker := g.Players[g.PendingBlock.Initiator]
 		if blocker.CanBlock(g.PendingAction.Type) {
 			g.TurnState = LeaderLostChallenge
+			g.NextDeath = leader.Id
 			return nil
 		}
 		g.TurnState = PlayerLostChallenge
+		g.NextDeath = g.PendingBlock.Initiator
 		return nil
 	}
 	return nil
@@ -210,38 +216,35 @@ func (g *Game) Challenge(challenge Challenge) error {
 // If the game is in a state where a player must lose a card, this functions allows a card to be killed.
 // Sets the card at index `card` to dead on the player who must die, depending on state.
 func (g *Game) ResolveDeath(card int) error {
-	if !g.StateIn(LeaderLostChallenge, PlayerLostChallenge, PlayerKilled) {
+	if !g.stateIn(LeaderLostChallenge, PlayerLostChallenge, PlayerKilled) {
 		return errors.New("no pending deaths to resolve")
 	}
 
-	// If a player has lost a challenge, return to ActionPending
-	if g.TurnState == PlayerLostChallenge {
-		// TODO the pending challenge could be the leader if this is a failed block.
-		// Logic needs updating.
-		g.Players[g.PendingChallenge.Initiator].KillCard(card)
-		g.TurnState = ActionPending
-		return nil
+	if g.NextDeath == "" {
+		return errors.New("id of next to die not set")
 	}
+	g.Players[g.NextDeath].KillCard(card)
+	g.NextDeath = ""
+
+	// If a player has lost a challenge, return to ActionPending
+	switch g.TurnState {
+	case PlayerLostChallenge:
+		g.TurnState = ActionPending
 
 	// If the leader has lost the challenge, the turn is over.
-	if g.TurnState == LeaderLostChallenge {
-		g.GetLeader().KillCard(card)
+	case LeaderLostChallenge:
 		g.TurnState = Finished
-		return nil
-	}
 
 	// If a player has been killed (assassinated or coup'd), the turn is over.
-	if g.TurnState == PlayerKilled {
-		g.Players[g.PendingAction.TargetPlayer].KillCard(card)
+	case PlayerKilled:
 		g.TurnState = Finished
-		return nil
 	}
 	return nil
 }
 
 // Commits a turn, either confirming an action
 func (g *Game) CommitTurn() error {
-	if !g.StateIn(ActionPending, BlockPending) {
+	if !g.stateIn(ActionPending, BlockPending) {
 		return errors.New("no action or block is pending")
 	}
 
@@ -261,6 +264,7 @@ func (g *Game) CommitTurn() error {
 		g.TurnState = Finished
 
 	case Revolt, Assassinate:
+		g.NextDeath = g.PendingAction.TargetPlayer
 		g.TurnState = PlayerKilled
 	case Tax:
 		g.GetLeader().AdjustCredits(3)
@@ -284,7 +288,7 @@ func (g *Game) CommitTurn() error {
 }
 
 func (g *Game) EndTurn() error {
-	if !g.StateIn(Finished) {
+	if !g.stateIn(Finished) {
 		return errors.New("turn not finished")
 	}
 
@@ -294,7 +298,7 @@ func (g *Game) EndTurn() error {
 }
 
 // Utility function to check if the game is in any of the passed states.
-func (g *Game) StateIn(states ...TurnState) bool {
+func (g *Game) stateIn(states ...TurnState) bool {
 	for _, state := range states {
 		if g.TurnState == state {
 			return true

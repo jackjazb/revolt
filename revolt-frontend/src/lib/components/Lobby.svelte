@@ -9,21 +9,24 @@
 
 <Card class="flex-col">
     <Title>lobby</Title>
+
     <div class="flex gap-2">
-        <Subtitle
-            >game id: <span class="font-mono">{global.state.gameId}</span
-            ></Subtitle
-        >
+        <Subtitle>
+            Game ID: <span class="font-mono">{global.state.gameId}</span>
+        </Subtitle>
     </div>
 
     <Table
         headers={["peers"]}
-        data={[[global.state.self.name], global.state.peers.map((p) => p.name)]}
+        data={[
+            global.state.self.name,
+            ...global.state.peers.map((p) => p.name),
+        ]}
     >
         {#snippet row(peer)}
             <tr>
                 <td class="p-1 border-neutral-500 border">
-                    {peer[0]}
+                    {peer}
                 </td>
             </tr>
         {/snippet}</Table
@@ -31,9 +34,9 @@
 
     {#if global.state.ownerId === global.state.self.id}
         <Button onclick={() => global.client.startGame()} class="ml-auto"
-            >start game</Button
+            >start</Button
         >
     {:else}
-        <Subtitle>waiting for leader to start...</Subtitle>
+        <Subtitle>Waiting for the leader...</Subtitle>
     {/if}
 </Card>

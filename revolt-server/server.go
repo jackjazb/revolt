@@ -64,9 +64,11 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				return err
 			}
 			switch ce.Code {
-			case websocket.CloseNormalClosure,
+			case
+				websocket.CloseNormalClosure,
 				websocket.CloseGoingAway,
 				websocket.CloseNoStatusReceived:
+
 				client.Log("connection closed by client")
 
 				close(client.Send)
@@ -152,6 +154,23 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				break
 			}
 			currentInstance.SendState <- true
+		case ResolveDeathMessage:
+			if currentInstance == nil {
+				client.Log("can't resolve death - not connected to game")
+				break
+			}
+			var payload ResolveDeathPayload
+			err = UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("error reading message: %s", err)
+				break
+			}
+			err = currentInstance.Game.ResolveDeath(payload.Card)
+			if err != nil {
+				client.Log("couldn't commit action: %s", err)
+				break
+			}
+			currentInstance.SendState <- true
 		case CommitTurnMessage:
 			if currentInstance == nil {
 				client.Log("can't commit turn - not connected to game")
@@ -183,13 +202,13 @@ func RunServer() {
 	log.Printf("server up on %s", host)
 
 	// Set up persistent instance tracking struct.
-	cm := InstanceManager{
+	im := InstanceManager{
 		Instances: make(map[string]*GameInstance),
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := MainHandler(&cm, w, r)
-		log.Println("error:", err)
+		err := MainHandler(&im, w, r)
+		log.Println("error in main handler:", err)
 	})
 
 	log.Fatal(http.ListenAndServe(host, nil))

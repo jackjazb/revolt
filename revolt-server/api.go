@@ -20,6 +20,7 @@ const (
 	JoinGameMessage      MessageType = "join_game"
 	StartGameMessage     MessageType = "start_game"
 	AttemptActionMessage MessageType = "attempt_action"
+	ResolveDeathMessage  MessageType = "resolve_death"
 	CommitTurnMessage    MessageType = "commit_turn"
 	EndTurnMessage       MessageType = "end_turn"
 )
@@ -35,4 +36,8 @@ type JoinGamePayload struct {
 
 type AttemptActionPayload struct {
 	Action game.Action `json:"action"`
+}
+
+type ResolveDeathPayload struct {
+	Card int `json:"card"`
 }
