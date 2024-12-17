@@ -99,11 +99,12 @@ type ClientStateBroadcast struct {
 }
 
 type Peer struct {
-	Name    string           `json:"name"`
-	Id      string           `json:"id"`
-	Cards   []game.CardState `json:"cards"`
-	Credits int              `json:"credits"`
-	Leading bool             `json:"leading"`
+	Name           string            `json:"name"`
+	Id             string            `json:"id"`
+	Cards          []game.CardState  `json:"cards"`
+	Credits        int               `json:"credits"`
+	Leading        bool              `json:"leading"`
+	AllowedActions []game.ActionType `json:"allowedActions"`
 }
 
 // Converts a state update message to a JSON byte array.
@@ -133,6 +134,7 @@ func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadc
 
 		if player.Id == client.Id {
 			peer.Cards = player.Cards
+			peer.AllowedActions = player.GetAllowedActions()
 			self = peer
 			continue
 		}

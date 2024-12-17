@@ -147,6 +147,11 @@ func (g *Game) AttemptAction(action Action) error {
 
 	g.PendingAction = action
 	g.TurnState = ActionPending
+
+	// Auto-commit income, as it isn't blockable.
+	if g.PendingAction.Type == Income {
+		g.CommitTurn()
+	}
 	return nil
 }
 

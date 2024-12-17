@@ -68,11 +68,11 @@ export interface CardState {
 
 export interface Block {
     card: Card;
-    initiator: string;
+    initiator?: string;
 }
 
 export interface Challenge {
-    initiator: string;
+    initiator?: string;
 }
 
 /**
@@ -84,7 +84,16 @@ export interface Peer {
     cards: CardState[];
     credits: number;
     leading: boolean;
+    /**
+     * Allowed actions - should only appear on `self`.
+     */
+    allowedActions?: ActionType[];
 }
+
+export interface CreateGameResponse {
+    id: string;
+}
+
 /**
  * A state update received from the server.
  */

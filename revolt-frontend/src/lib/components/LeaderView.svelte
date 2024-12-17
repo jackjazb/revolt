@@ -3,10 +3,19 @@ The base game view for the leader, primarily allowing action choice.
 -->
 <script lang="ts">
     import { global } from "../state.svelte";
-    import { ActionType, TurnState } from "../types";
-    import { getPlayerById } from "../utils";
-    import Button from "./atomic/Button.svelte";
-    import Subtitle from "./atomic/Subtitle.svelte";
+    import { TurnState } from "../types";
+    import { getPlayerById, stateIn } from "../utils";
+    import ActionAssassinate from "./actions/ActionAssassinate.svelte";
+    import ActionChallenge from "./actions/ActionChallenge.svelte";
+    import ActionCommit from "./actions/ActionCommit.svelte";
+    import ActionForeignAid from "./actions/ActionForeignAid.svelte";
+    import ActionIncome from "./actions/ActionIncome.svelte";
+    import ActionRevolt from "./actions/ActionRevolt.svelte";
+    import ActionSteal from "./actions/ActionSteal.svelte";
+    import ActionTax from "./actions/ActionTax.svelte";
+    import Button from "./atoms/Button.svelte";
+    import Subtitle from "./atoms/Subtitle.svelte";
+    import ResolveDeath from "./ResolveDeath.svelte";
 
     // Leaders can end their turn after a timeout.
     let timeout = $state(0);
@@ -30,34 +39,6 @@ The base game view for the leader, primarily allowing action choice.
         };
     });
 
-    const income = () => {
-        global.client.attemptAction({
-            type: ActionType.Income,
-        });
-    };
-    const foreignAid = () => {
-        global.client.attemptAction({
-            type: ActionType.ForeignAid,
-        });
-    };
-    const tax = () => {
-        global.client.attemptAction({
-            type: ActionType.Tax,
-        });
-    };
-    const steal = (target: string) => {
-        global.client.attemptAction({
-            type: ActionType.Steal,
-            target,
-        });
-    };
-    const assassinate = (target: string) => {
-        global.client.attemptAction({
-            type: ActionType.Assassinate,
-            target,
-        });
-    };
-
     const commit = () => {
         global.client.commitTurn();
     };
@@ -66,25 +47,25 @@ The base game view for the leader, primarily allowing action choice.
     };
 </script>
 
-{#if global.state.turnState === TurnState.Default}
+{#if stateIn(global.state, TurnState.Default)}
     <div class="flex flex-col gap-2">
-        <Button onclick={income}>income</Button>
-        <Button onclick={foreignAid}>foreign aid</Button>
-        <Button onclick={tax}>tax</Button>
+        <ActionIncome />
+        <ActionForeignAid />
+        <ActionTax />
         <Button disabled>exchange</Button>
     </div>
     <div class={`grid grid-cols-5`}>
         {#each global.state.peers as peer}
             <div class="flex flex-col gap-2">
                 <Subtitle>{peer.name}</Subtitle>
-                <Button onclick={() => assassinate(peer.id)}>assassinate</Button
-                >
-                <Button>revolt</Button>
-                <Button onclick={() => steal(peer.id)}>steal</Button>
+
+                <ActionAssassinate target={peer.id} />
+                <ActionRevolt target={peer.id} />
+                <ActionSteal target={peer.id} />
             </div>
         {/each}
     </div>
-{:else if global.state.turnState === TurnState.ActionPending && global.state.pendingAction}
+{:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
     <Subtitle>you've attempted {global.state.pendingAction.type}</Subtitle>
     {#if global.state.pendingAction.target}
         <h2>
@@ -96,13 +77,17 @@ The base game view for the leader, primarily allowing action choice.
     {/if}
     <p>end turn in {(timeout / 1000).toFixed(2)}s</p>
     <Button disabled={timeout > 0} onclick={commit}>commit</Button>
-{:else if global.state.turnState === TurnState.BlockPending}
+{:else if stateIn(global.state, TurnState.BlockPending)}
     <h1>block pending</h1>
-{:else if global.state.turnState === TurnState.PlayerKilled}
-    <Subtitle
-        >{getPlayerById(global.state, global.state.nextDeath)} loses a card!</Subtitle
-    >
+    <ActionChallenge />
+    <ActionCommit />
+{:else if stateIn(global.state, TurnState.PlayerKilled, TurnState.LeaderLostChallenge, TurnState.PlayerLostChallenge)}
+    <ResolveDeath />
 {:else if global.state.turnState === TurnState.Finished}
-    <h1>finished</h1>
-    <Button onclick={end}>end turn</Button>
+    {#if global.state.self.leading}
+        <h1>finished</h1>
+        <Button onclick={end}>end turn</Button>
+    {:else}
+        <Subtitle>Waiting for leader to end turn</Subtitle>
+    {/if}
 {/if}

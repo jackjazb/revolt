@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { IconType } from "../types";
+    import type { IconType } from "../../types";
 
     const { type }: { type: IconType } = $props();
 </script>

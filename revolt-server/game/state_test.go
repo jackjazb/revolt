@@ -434,17 +434,12 @@ func TestCommitTurn(t *testing.T) {
 		}
 	})
 
-	t.Run("should apply Income", func(t *testing.T) {
+	t.Run("should apply Income and auto-commit the turn", func(t *testing.T) {
 		g := setup()
 
 		err := g.AttemptAction(Action{
 			Type: Income,
 		})
-		if err != nil {
-			t.Errorf("got error: %s", err)
-		}
-
-		err = g.CommitTurn()
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
@@ -701,10 +696,6 @@ func TestEndTurn(t *testing.T) {
 		if err != nil {
 			t.Errorf("got error: %s", err)
 		}
-		err = g.CommitTurn()
-		if err != nil {
-			t.Errorf("got error: %s", err)
-		}
 		err = g.EndTurn()
 		if err != nil {
 			t.Errorf("got error: %s", err)
@@ -718,10 +709,6 @@ func TestEndTurn(t *testing.T) {
 		g := setup()
 		for range 3 {
 			err := g.AttemptAction(Action{Type: Income})
-			if err != nil {
-				t.Errorf("got error: %s", err)
-			}
-			err = g.CommitTurn()
 			if err != nil {
 				t.Errorf("got error: %s", err)
 			}

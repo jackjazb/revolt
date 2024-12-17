@@ -8,6 +8,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func remove(array []string, value string) (ret []string) {
+	for _, s := range array {
+		if s != value {
+			ret = append(ret, s)
+		}
+	}
+	return
+}
+
 // Unmarshals a payload interface, allowing type assignment.
 func UnmarshalPayload(payload interface{}, v any) error {
 	bytes, err := json.Marshal(payload)
@@ -52,6 +61,14 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 
 	log.Printf("new client connected: %s", client.Id)
 
+	bytes, err := json.Marshal(ConnectionResponse{Id: client.Id})
+	if err != nil {
+		client.Log("connection failed immediately, %v", err)
+		return err
+	}
+	// Send the client's ID on initial connection.
+	client.Send <- bytes
+
 	// Holds a pointer to the client's current game instance.
 	var currentInstance *GameInstance
 
@@ -71,9 +88,14 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 
 				client.Log("connection closed by client")
 
+				if currentInstance != nil {
+					delete(currentInstance.Clients, client.Id)
+					delete(currentInstance.Game.Players, client.Id)
+					currentInstance.Game.Order = remove(currentInstance.Game.Order, client.Id)
+					currentInstance.SendState <- true
+				}
 				close(client.Send)
-				delete(currentInstance.Clients, client.Id)
-				currentInstance.SendState <- true
+
 				return err
 			}
 		}
@@ -82,32 +104,14 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 		var message Message
 		err = json.Unmarshal(bytes, &message)
 		if err != nil {
-			return err
+			client.Log("invalid message payload: %s", message.Payload)
+			continue
 		}
 
 		log.Printf("received message %+v", message)
 
 		switch message.Type {
-		case CreateGameMessage:
-			var payload CreateGamePayload
-			err := UnmarshalPayload(message.Payload, &payload)
-			if err != nil {
-				client.Log("invalid message payload: %s", message.Payload)
-				break
-			}
-
-			// Register the instance in the global context.
-			instance := NewGameInstance(client.Id)
-			im.RegisterInstance(&instance)
-			currentInstance = &instance
-
-			// Run handler for client connections and message broadcasts.
-			go instance.Run()
-			client.Name = payload.PlayerName
-
-			// Register the caller.
-			instance.Register <- &client
-			instance.SendState <- true
+		// TODO we could do this automatically on first load.
 		case JoinGameMessage:
 			var payload JoinGamePayload
 			err := UnmarshalPayload(message.Payload, &payload)
@@ -121,10 +125,32 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				client.Log("instance with id %s not found", payload.GameId)
 				break
 			}
+
+			// Set the owner to the first client to connect.
+			if len(instance.Clients) == 0 {
+				instance.OwnerId = client.Id
+			}
+
 			client.Name = payload.PlayerName
 			currentInstance = instance
 			instance.Register <- &client
 			instance.SendState <- true
+
+		case ChangeNameMessage:
+			if currentInstance == nil {
+				client.Log("can't change player name - not connected to game")
+				break
+			}
+			var payload ChangeNamePayload
+			err := UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("invalid message payload: %s", message.Payload)
+				break
+			}
+
+			client.Name = payload.PlayerName
+			currentInstance.SendState <- true
+
 		case StartGameMessage:
 			if currentInstance == nil {
 				client.Log("can't start game (not connected to one)")
@@ -137,6 +163,7 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 			currentInstance.Game.Deal()
 			currentInstance.Status = InProgress
 			currentInstance.SendState <- true
+
 		case AttemptActionMessage:
 			if currentInstance == nil {
 				client.Log("can't attempt action - not connected to game")
@@ -154,6 +181,47 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				break
 			}
 			currentInstance.SendState <- true
+
+		case AttemptBlockMessage:
+			if currentInstance == nil {
+				client.Log("can't attempt block - not connected to game")
+				break
+			}
+			var payload AttemptBlockPayload
+			err = UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("error reading message: %s", err)
+				break
+			}
+			// Set initiator - even if provided, we don't want to allow impersonating other players.
+			payload.Block.Initiator = client.Id
+			err = currentInstance.Game.AttemptBlock(payload.Block)
+			if err != nil {
+				client.Log("couldn't attempt block: %s", err)
+				break
+			}
+			currentInstance.SendState <- true
+
+		case ChallengeMessage:
+			if currentInstance == nil {
+				client.Log("can't attempt block - not connected to game")
+				break
+			}
+			var payload ChallengePayload
+			err = UnmarshalPayload(message.Payload, &payload)
+			if err != nil {
+				client.Log("error reading message: %s", err)
+				break
+			}
+			// Set initiator - even if provided, we don't want to allow impersonating other players.
+			payload.Challenge.Initiator = client.Id
+			err = currentInstance.Game.Challenge(payload.Challenge)
+			if err != nil {
+				client.Log("couldn't attempt challenge: %s", err)
+				break
+			}
+			currentInstance.SendState <- true
+
 		case ResolveDeathMessage:
 			if currentInstance == nil {
 				client.Log("can't resolve death - not connected to game")
@@ -167,10 +235,11 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 			}
 			err = currentInstance.Game.ResolveDeath(payload.Card)
 			if err != nil {
-				client.Log("couldn't commit action: %s", err)
+				client.Log("couldn't resolve death action: %s", err)
 				break
 			}
 			currentInstance.SendState <- true
+
 		case CommitTurnMessage:
 			if currentInstance == nil {
 				client.Log("can't commit turn - not connected to game")
@@ -182,6 +251,7 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				break
 			}
 			currentInstance.SendState <- true
+
 		case EndTurnMessage:
 			if currentInstance == nil {
 				client.Log("can't end turn - not connected to game")
@@ -205,6 +275,26 @@ func RunServer() {
 	im := InstanceManager{
 		Instances: make(map[string]*GameInstance),
 	}
+
+	http.HandleFunc("POST /create", func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// Register the instance in the global context.
+		// TODO set owner on first client connection
+		instance := NewGameInstance("")
+		im.RegisterInstance(&instance)
+
+		// Run handler for client connections and message broadcasts.
+		go instance.Run()
+
+		bytes, err := json.Marshal(ConnectionResponse{Id: instance.GameId})
+		if err != nil {
+			log.Println("failed to send id")
+			return
+		}
+		w.Write(bytes)
+	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		err := MainHandler(&im, w, r)

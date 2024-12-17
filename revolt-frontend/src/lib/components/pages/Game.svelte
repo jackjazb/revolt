@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { global } from "../state.svelte";
-    import Card from "./atomic/Card.svelte";
-    import Subtitle from "./atomic/Subtitle.svelte";
-    import Table from "./atomic/Table.svelte";
-    import Title from "./atomic/Title.svelte";
-    import LeaderView from "./LeaderView.svelte";
-    import PeerCards from "./PeerCards.svelte";
-    import PeerView from "./PeerView.svelte";
+    import { global } from "../../state.svelte";
+    import Card from "../atoms/Card.svelte";
+    import Subtitle from "../atoms/Subtitle.svelte";
+    import Table from "../atoms/Table.svelte";
+    import Title from "../atoms/Title.svelte";
+    import LeaderView from "../LeaderView.svelte";
+    import PeerCards from "../PeerCards.svelte";
+    import PeerView from "../PeerView.svelte";
 </script>
 
 <div class="grid grid-cols-4 gap-2 w-full h-full">

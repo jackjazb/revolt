@@ -5,6 +5,10 @@ import (
 	"slices"
 )
 
+// The number of credits players are granted at the start of the game.
+// TODO change back to 2
+const StartingCredits = 7
+
 // Defines a single player.
 type Player struct {
 	Id      string      `json:"id"`
@@ -18,7 +22,7 @@ func NewPlayer(id string, name string) Player {
 		Id:      id,
 		Name:    name,
 		Cards:   []CardState{},
-		Credits: 2,
+		Credits: StartingCredits,
 	}
 }
 

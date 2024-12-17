@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { global } from "../state.svelte";
-    import Button from "./atomic/Button.svelte";
-    import Card from "./atomic/Card.svelte";
-    import Subtitle from "./atomic/Subtitle.svelte";
-    import Table from "./atomic/Table.svelte";
-    import Title from "./atomic/Title.svelte";
+    import { global } from "../../state.svelte";
+    import Button from "../atoms/Button.svelte";
+    import Card from "../atoms/Card.svelte";
+    import Subtitle from "../atoms/Subtitle.svelte";
+    import Table from "../atoms/Table.svelte";
+    import Title from "../atoms/Title.svelte";
 </script>
 
 <Card class="flex-col">

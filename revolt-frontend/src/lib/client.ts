@@ -1,10 +1,13 @@
-import { type Action, type State } from "./types";
+import { type Action, type Block, type CreateGameResponse, type State } from "./types";
 
 export enum MessageType {
     CreateGame = 'create_game',
     JoinGame = 'join_game',
+    ChangeName = 'change_name',
     StartGame = 'start_game',
     AttemptAction = 'attempt_action',
+    AttemptBlock = 'attempt_block',
+    Challenge = 'challenge',
     ResolveDeath = 'resolve_death',
     CommitTurn = 'commit_turn',
     EndTurn = 'end_turn'
@@ -36,20 +39,20 @@ export class Client {
         });
     }
 
-    createGame(playerName: string) {
-        this.sendMessage({
-            type: MessageType.CreateGame,
-            payload: {
-                playerName
-            }
-        });
-    }
-
     joinGame(gameId: string, playerName: string) {
         this.sendMessage({
             type: MessageType.JoinGame,
             payload: {
                 gameId,
+                playerName
+            }
+        });
+    }
+
+    changeName(playerName: string) {
+        this.sendMessage({
+            type: MessageType.ChangeName,
+            payload: {
                 playerName
             }
         });
@@ -61,12 +64,37 @@ export class Client {
         });
     }
 
+
+    /**
+     * The initial action in a turn. Represents an attempt to perform an action.
+     */
     attemptAction(action: Action) {
         this.sendMessage({
             type: MessageType.AttemptAction,
             payload: {
                 action
             }
+        });
+    }
+
+    /**
+     * Represents an attempt to block an action.
+     */
+    attemptBlock(block: Block) {
+        this.sendMessage({
+            type: MessageType.AttemptBlock,
+            payload: {
+                block
+            }
+        });
+    }
+
+    /** 
+     * Represents a challenge of a block or action.
+    */
+    challenge() {
+        this.sendMessage({
+            type: MessageType.Challenge,
         });
     }
 
@@ -107,7 +135,11 @@ export class Client {
         if (!event.data) {
             return;
         }
-        const message = JSON.parse(event.data) as State;
+        const message = JSON.parse(event.data) as State | CreateGameResponse;
+        if ('id' in message) {
+            console.log('connected - given ID', message.id);
+            return;
+        }
         this.state = message;
         this.onStateUpdate(this.state);
         console.log('received state update:', JSON.stringify(this.state, undefined, 2));

@@ -30,7 +30,6 @@ func (c *Client) HandleMessages() {
 		if err := c.Connection.WriteMessage(websocket.TextMessage, message); err != nil {
 			c.Log("error writing message: %s", err)
 			return
-
 		}
 	}
 	c.Log("client handler stopped")
