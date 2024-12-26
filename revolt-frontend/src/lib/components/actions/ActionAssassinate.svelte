@@ -15,7 +15,7 @@
 </script>
 
 <Button onclick={assassinate}>
-    assassinate
+    Assassinate
     {#if !isAllowedAction(global.state, ActionType.Assassinate)}
         (lie)
     {/if}

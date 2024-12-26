@@ -12,9 +12,9 @@ type GameStatus string
 
 // Defines possible instance statuses.
 const (
-	Lobby              GameStatus = "lobby"
-	InProgress         GameStatus = "in_progress"
-	CompleteGameStatus GameStatus = "complete"
+	Lobby      GameStatus = "lobby"
+	InProgress GameStatus = "in_progress"
+	Complete   GameStatus = "complete"
 )
 
 // A single instance of a game.
@@ -93,6 +93,7 @@ type ClientStateBroadcast struct {
 	// Game info.
 	TurnState        game.TurnState `json:"turnState"`
 	NextDeath        string         `json:"nextDeath"`
+	Winner           string         `json:"winner"`
 	PendingAction    game.Action    `json:"pendingAction"`
 	PendingBlock     game.Block     `json:"pendingBlock"`
 	PendingChallenge game.Challenge `json:"pendingChallenge"`
@@ -151,6 +152,7 @@ func (gi *GameInstance) ToClientStateBroadcast(client *Client) ClientStateBroadc
 		Self:             self,
 		Peers:            peers,
 		NextDeath:        gi.Game.NextDeath,
+		Winner:           gi.Game.Winner,
 		PendingAction:    gi.Game.PendingAction,
 		PendingBlock:     gi.Game.PendingBlock,
 		PendingChallenge: gi.Game.PendingChallenge,

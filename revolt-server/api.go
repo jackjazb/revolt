@@ -16,9 +16,6 @@ type MessageType string
 // Define possible message types.
 const (
 	// Game administration messages
-	CreateGameMessage    MessageType = "create_game"
-	JoinGameMessage      MessageType = "join_game"
-	ChangeNameMessage    MessageType = "change_name"
 	StartGameMessage     MessageType = "start_game"
 	AttemptActionMessage MessageType = "attempt_action"
 	AttemptBlockMessage  MessageType = "attempt_block"
@@ -33,18 +30,6 @@ type ConnectionResponse struct {
 	Id string `json:"id"`
 }
 
-type CreateGamePayload struct {
-	PlayerName string `json:"playerName"`
-}
-
-type ChangeNamePayload struct {
-	PlayerName string `json:"playerName"`
-}
-
-type JoinGamePayload struct {
-	GameId     string `json:"gameId"`
-	PlayerName string `json:"playerName"`
-}
 type RejoinGamePayload struct {
 	GameId   string `json:"gameId"`
 	ClientId string `json:"clientId"`

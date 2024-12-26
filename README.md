@@ -2,6 +2,13 @@
 
 A card game.
 
+## To Do
+
+- Game end state
+- Card art
+- Handle client disconnects more gracefully
+- Move message handling inside GameInstance
+
 ## Rules
 
 Each player has two cards, which grant permission to perform certain actions. However, players can lie and perform any action.
@@ -72,12 +79,3 @@ There are 8 possible states in the Revolt state machine, detailed below. Each st
 For example, a simple turn with no challenges or block would look like this:
 
 `[Default]->AttemptAction()->[ActionPending]->CommitTurn()->[Finished]`
-
-## WebSocket API
-
-```json
-// Client sends
-{"type": "createGame"}
-// Server responds.
-{"type": "createGame", "payload":{"id": "aaa-bbb-ccc"}}
-```

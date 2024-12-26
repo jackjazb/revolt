@@ -13,7 +13,7 @@
 </script>
 
 <div
-    class={`rounded-sm bg-neutral-700 p-2 gap-2 flex ${row ? "flex-row" : "flex-col"} ${rest.class}`}
+    class={`rounded-sm bg-neutral-700 p-2 gap-2 flex ${row ? "flex-row items-center" : "flex-col"} ${rest.class}`}
 >
     {@render children()}
 </div>

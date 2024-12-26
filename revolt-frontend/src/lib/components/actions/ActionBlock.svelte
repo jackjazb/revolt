@@ -12,7 +12,7 @@
 </script>
 
 <Button onclick={block}>
-    block with {card}
+    Block with {card}
     {#if !global.state.self.cards.map((card) => card.card).includes(card)}
         (lie)
     {/if}

@@ -6,7 +6,10 @@ import (
 )
 
 func run() error {
-	RunServer()
+	err := RunServer()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

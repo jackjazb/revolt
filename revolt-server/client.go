@@ -16,9 +16,10 @@ type Client struct {
 	Send       chan []byte
 }
 
-func NewClient(conn *websocket.Conn) Client {
+func NewClient(conn *websocket.Conn, name string) Client {
 	return Client{
 		Id:         game.Id(),
+		Name:       name,
 		Connection: conn,
 		Send:       make(chan []byte),
 	}

@@ -19,6 +19,21 @@ export function getPlayerById(state: State, id: string): string | undefined {
 }
 
 /**
+ * Returns the name of the current game leader.
+ */
+export function getLeader(state: State): string {
+    if (state.self.leading) {
+        return state.self.name;
+    }
+    const leaders = state.peers.filter(p => p.leading);
+    if (leaders.length === 1) {
+        return leaders[0].name;
+    }
+    // Shouldn't be able to get here.
+    return "";
+}
+
+/**
  * Returns true if `self` is allowed to perform `action` with their current cards.
  */
 export function isAllowedAction(state: State, action: ActionType): boolean {
@@ -58,4 +73,28 @@ export function stateIn(state: State, ...states: TurnState[]): boolean {
         }
     }
     return false;
+}
+
+export function formatActionType(type: ActionType): string {
+    switch (type) {
+        case ActionType.Income:
+            return "Income";
+        case ActionType.ForeignAid:
+            return "Foreign Aid";
+        case ActionType.Tax:
+            return "Tax";
+        case ActionType.Assassinate:
+            return "Assassinate";
+        case ActionType.Revolt:
+            return "Revolt";
+        case ActionType.Exchange:
+            return "Exchange";
+        case ActionType.Steal:
+            return "Steal";
+    }
+    return "";
+}
+
+export function formatCurrency(value: number): string {
+    return `${value}₡`;
 }

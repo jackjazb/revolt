@@ -1,4 +1,4 @@
-import { Client } from "./client";
+import { Client, ClientStatus } from "./client";
 import { initialState, type State } from "./types";
 
 /**
@@ -9,8 +9,9 @@ import { initialState, type State } from "./types";
  */
 class GlobalStore {
     state: State = $state(initialState);
+    status = $state(ClientStatus.Default);
     // The callback here is used to trigger rerenders when the game state updates.
-    client = $state(new Client((update) => (this.state = update)));
+    client = new Client(update => (this.state = update));
 }
 
 export const global = new GlobalStore();

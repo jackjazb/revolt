@@ -5,16 +5,17 @@
     import Subtitle from "../atoms/Subtitle.svelte";
     import Table from "../atoms/Table.svelte";
     import Title from "../atoms/Title.svelte";
+    import LeaveGame from "../LeaveGame.svelte";
 </script>
 
 <Card class="flex-col">
-    <Title>lobby</Title>
-
-    <div class="flex gap-2">
+    <Title>Lobby</Title>
+    <div class="flex gap-4 items-center">
         <Subtitle>
-            Game ID: <span class="font-mono">{global.state.gameId}</span>
+            Connected to: <span class="font-mono">{global.state.gameId}</span>
         </Subtitle>
     </div>
+    <a href={window.location.href}>{window.location.href}</a>
 
     <Table
         headers={["peers"]}
@@ -32,11 +33,14 @@
         {/snippet}</Table
     >
 
-    {#if global.state.ownerId === global.state.self.id}
-        <Button onclick={() => global.client.startGame()} class="ml-auto"
-            >start</Button
+    <div class="ml-auto">
+        <Button
+            onclick={() => global.client.startGame()}
+            class="ml-auto"
+            disabled={!global.state.self.leading}
         >
-    {:else}
-        <Subtitle>Waiting for the leader...</Subtitle>
-    {/if}
+            Start Game
+        </Button>
+        <LeaveGame />
+    </div>
 </Card>

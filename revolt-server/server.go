@@ -2,11 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
+
+const NameKey = "name"
 
 func remove(array []string, value string) (ret []string) {
 	for _, s := range array {
@@ -15,6 +19,12 @@ func remove(array []string, value string) (ret []string) {
 		}
 	}
 	return
+}
+
+// Writes an error message to a websocket connection and closes it.
+func errorAndClose(conn *websocket.Conn, error string) {
+	conn.WriteMessage(websocket.CloseMessage, []byte(fmt.Sprintf(`{"error":"%s"}`, error)))
+	conn.Close()
 }
 
 // Unmarshals a payload interface, allowing type assignment.
@@ -30,11 +40,14 @@ func UnmarshalPayload(payload interface{}, v any) error {
 	return nil
 }
 
-// Global game instance tracker.
+// Struct for tracking instances
 type InstanceManager struct {
 	// Maps IDs to game instance pointers (this allows modification)
 	Instances map[string]*GameInstance
 }
+
+// Global instance store.
+var im InstanceManager
 
 func (im *InstanceManager) RegisterInstance(instance *GameInstance) {
 	im.Instances[instance.GameId] = instance
@@ -48,29 +61,46 @@ var upgrader = websocket.Upgrader{
 }
 
 // Primary websocket connection handler.
-func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) error {
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	// Create a new websocket connection.
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
-	client := NewClient(conn)
+	// Check the path for an instance ID.
+	path := strings.Split(r.URL.Path, "/")[1:]
+	if len(path) != 1 {
+		errorAndClose(conn, "missing ID in URL")
+		return
+	}
 
-	// Listen for messages and write them when received.
+	id := path[0]
+	instance, ok := im.Instances[id]
+	if !ok {
+		errorAndClose(conn, "instance not found")
+		return
+	}
+
+	// Extract a name from the URL if present
+	name := r.URL.Query().Get(NameKey)
+	client := NewClient(conn, name)
+
 	go client.HandleMessages()
-
-	log.Printf("new client connected: %s", client.Id)
-
-	bytes, err := json.Marshal(ConnectionResponse{Id: client.Id})
-	if err != nil {
-		client.Log("connection failed immediately, %v", err)
-		return err
-	}
-	// Send the client's ID on initial connection.
-	client.Send <- bytes
+	client.Log("new client connected with name %s", client.Name)
 
 	// Holds a pointer to the client's current game instance.
 	var currentInstance *GameInstance
+
+	// Set the owner to the first client to connect.
+	if len(instance.Clients) == 0 {
+		instance.OwnerId = client.Id
+	}
+
+	currentInstance = instance
+	instance.Register <- &client
+	instance.SendState <- true
 
 	for {
 		_, bytes, err := conn.ReadMessage()
@@ -78,7 +108,8 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 			// If the client closed the connection, make sure to stop their handler.
 			ce, ok := err.(*websocket.CloseError)
 			if !ok {
-				return err
+				log.Println(err)
+				return
 			}
 			switch ce.Code {
 			case
@@ -96,7 +127,8 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				}
 				close(client.Send)
 
-				return err
+				log.Println(err)
+				return
 			}
 		}
 
@@ -111,46 +143,6 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 		log.Printf("received message %+v", message)
 
 		switch message.Type {
-		// TODO we could do this automatically on first load.
-		case JoinGameMessage:
-			var payload JoinGamePayload
-			err := UnmarshalPayload(message.Payload, &payload)
-			if err != nil {
-				client.Log("invalid message payload: %s", message.Payload)
-				break
-			}
-
-			instance, ok := im.Instances[payload.GameId]
-			if !ok {
-				client.Log("instance with id %s not found", payload.GameId)
-				break
-			}
-
-			// Set the owner to the first client to connect.
-			if len(instance.Clients) == 0 {
-				instance.OwnerId = client.Id
-			}
-
-			client.Name = payload.PlayerName
-			currentInstance = instance
-			instance.Register <- &client
-			instance.SendState <- true
-
-		case ChangeNameMessage:
-			if currentInstance == nil {
-				client.Log("can't change player name - not connected to game")
-				break
-			}
-			var payload ChangeNamePayload
-			err := UnmarshalPayload(message.Payload, &payload)
-			if err != nil {
-				client.Log("invalid message payload: %s", message.Payload)
-				break
-			}
-
-			client.Name = payload.PlayerName
-			currentInstance.SendState <- true
-
 		case StartGameMessage:
 			if currentInstance == nil {
 				client.Log("can't start game (not connected to one)")
@@ -161,6 +153,12 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 				break
 			}
 			currentInstance.Game.Deal()
+
+			// TODO remove, only for debug purposes.
+			for _, p := range currentInstance.Game.Players {
+				p.Credits += 5
+			}
+
 			currentInstance.Status = InProgress
 			currentInstance.SendState <- true
 
@@ -267,39 +265,48 @@ func MainHandler(im *InstanceManager, w http.ResponseWriter, r *http.Request) er
 	}
 }
 
-func RunServer() {
+func createGameHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "method not permitted", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Register the instance in the global context.
+	instance := NewGameInstance("")
+	im.RegisterInstance(&instance)
+
+	// Run handler for client connections and message broadcasts.
+	go instance.Run()
+
+	bytes, err := json.Marshal(ConnectionResponse{Id: instance.GameId})
+	if err != nil {
+		log.Println("failed to send id of new game")
+		return
+	}
+	w.Write(bytes)
+}
+
+func initInstanceManager() {
+	im = InstanceManager{
+		Instances: make(map[string]*GameInstance),
+	}
+}
+
+func RunServer() error {
 	host := "localhost:8080"
 	log.Printf("server up on %s", host)
 
-	// Set up persistent instance tracking struct.
-	im := InstanceManager{
-		Instances: make(map[string]*GameInstance),
+	initInstanceManager()
+
+	mux := http.NewServeMux()
+	mux.Handle("/create", http.HandlerFunc(createGameHandler))
+	mux.Handle("/{id}", http.HandlerFunc(websocketHandler))
+
+	err := http.ListenAndServe(host, mux)
+	if err != nil {
+		return err
 	}
-
-	http.HandleFunc("POST /create", func(w http.ResponseWriter, r *http.Request) {
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		// Register the instance in the global context.
-		// TODO set owner on first client connection
-		instance := NewGameInstance("")
-		im.RegisterInstance(&instance)
-
-		// Run handler for client connections and message broadcasts.
-		go instance.Run()
-
-		bytes, err := json.Marshal(ConnectionResponse{Id: instance.GameId})
-		if err != nil {
-			log.Println("failed to send id")
-			return
-		}
-		w.Write(bytes)
-	})
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := MainHandler(&im, w, r)
-		log.Println("error in main handler:", err)
-	})
-
-	log.Fatal(http.ListenAndServe(host, nil))
+	return nil
 }

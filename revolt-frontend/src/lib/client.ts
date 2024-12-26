@@ -1,9 +1,7 @@
-import { type Action, type Block, type CreateGameResponse, type State } from "./types";
+import { initialState, type Action, type Block, type State } from "./types";
+import { randomName } from "./utils";
 
 export enum MessageType {
-    CreateGame = 'create_game',
-    JoinGame = 'join_game',
-    ChangeName = 'change_name',
     StartGame = 'start_game',
     AttemptAction = 'attempt_action',
     AttemptBlock = 'attempt_block',
@@ -18,44 +16,59 @@ export interface Message {
     payload?: Record<string, any>;
 }
 
+const WS_TIMEOUT = 5000;
+
+export enum ClientStatus {
+    Default = "default",
+    Connecting = "connecting",
+    Connected = "connected",
+    Failed = "failed"
+}
+
 export class Client {
-
     private socket?: WebSocket;
-    private onStateUpdate: (state: State) => void;
-    state?: State;
+    state: State = initialState;
+    status: ClientStatus = ClientStatus.Default;
 
-    constructor(onStateUpdate: (state: State) => void) {
-        this.onStateUpdate = onStateUpdate;
-    }
+    constructor(private onStateUpdate: (state: State) => void) { };
 
-    async connect(uri: string) {
-        const socket = new WebSocket(uri);
+    async connect(uri: string, playerName?: string) {
+        this.status = ClientStatus.Connecting;
+
+        // Initial connection should include the player's alias in the URL search params.
+        if (!playerName) {
+            playerName = randomName();
+        }
+
+        const url = new URL(uri);
+        url.searchParams.set('name', playerName);
+        const socket = new WebSocket(url);
+
         return new Promise<void>(resolve => {
+            const timeout = setTimeout(() => {
+                socket.close();
+            }, WS_TIMEOUT);
+
             socket.onopen = () => {
+                this.status = ClientStatus.Connected;
+
+                clearTimeout(timeout);
                 socket.onmessage = e => this.handleMessage(e);
                 this.socket = socket;
+                resolve();
+            };
+
+            socket.onclose = () => {
+                this.status = ClientStatus.Failed;
+
+                clearTimeout(timeout);
                 resolve();
             };
         });
     }
 
-    joinGame(gameId: string, playerName: string) {
-        this.sendMessage({
-            type: MessageType.JoinGame,
-            payload: {
-                gameId,
-                playerName
-            }
-        });
-    }
-
-    changeName(playerName: string) {
-        this.sendMessage({
-            type: MessageType.ChangeName,
-            payload: {
-                playerName
-            }
-        });
+    leave() {
+        this.socket?.close();
     }
 
     startGame() {
@@ -135,11 +148,7 @@ export class Client {
         if (!event.data) {
             return;
         }
-        const message = JSON.parse(event.data) as State | CreateGameResponse;
-        if ('id' in message) {
-            console.log('connected - given ID', message.id);
-            return;
-        }
+        const message = JSON.parse(event.data) as State;
         this.state = message;
         this.onStateUpdate(this.state);
         console.log('received state update:', JSON.stringify(this.state, undefined, 2));

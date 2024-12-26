@@ -20,6 +20,7 @@ export enum Card {
  * Possible types of action
  */
 export enum ActionType {
+    Empty = "",
     Income = "income",
     ForeignAid = "foreign_aid",
     Tax = "tax",
@@ -34,7 +35,7 @@ export enum ActionType {
  */
 export interface Action {
     type: ActionType,
-    target?: string;
+    target: string;
 }
 
 /**
@@ -48,6 +49,7 @@ export enum TurnState {
     PlayerLostChallenge = "player_lost_challenge",
     LeaderLostChallenge = "leader_lost_challenge",
     PlayerKilled = "player_killed",
+    PlayerWon = "player_won",
     Finished = "finished",
 }
 
@@ -72,7 +74,7 @@ export interface Block {
 }
 
 export interface Challenge {
-    initiator?: string;
+    initiator: string;
 }
 
 /**
@@ -101,20 +103,22 @@ export interface State {
     timestamp: string,
     gameId: string,
     ownerId: string;
+    winner: string;
     self: Peer;
     peers: Peer[];
     status: GameStatus,
     nextDeath: string,
     turnState: TurnState,
-    pendingAction?: Action;
-    pendingBlock?: Block;
-    pendingChallenge?: Challenge;
+    pendingAction: Action;
+    pendingBlock: Block;
+    pendingChallenge: Challenge;
 }
 
 export const initialState: State = {
     timestamp: "",
     gameId: "",
     ownerId: "",
+    winner: "",
     nextDeath: "",
     self: {
         id: "",
@@ -126,4 +130,15 @@ export const initialState: State = {
     peers: [],
     status: GameStatus.Default,
     turnState: TurnState.Default,
+    pendingAction: {
+        type: ActionType.Empty,
+        target: ""
+    },
+    pendingBlock: {
+        card: Card.Empty,
+        initiator: ""
+    },
+    pendingChallenge: {
+        initiator: ""
+    }
 };

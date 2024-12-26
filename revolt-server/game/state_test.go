@@ -688,6 +688,7 @@ func TestEndTurn(t *testing.T) {
 		g.AddPlayer("0", "Test")
 		g.AddPlayer("1", "Test")
 		g.AddPlayer("2", "Test")
+		g.Deal()
 		return g
 	}
 	t.Run("should advance the leader and transition the game back to the default state", func(t *testing.T) {
@@ -701,7 +702,31 @@ func TestEndTurn(t *testing.T) {
 			t.Errorf("got error: %s", err)
 		}
 		if g.Leader != 1 {
-			t.Errorf("expected 1 to be leader, go %d", g.Leader)
+			t.Errorf("expected 1 to be leader, got %d", g.Leader)
+		}
+		if g.TurnState != Default {
+			t.Errorf("expected default state, got %s", g.TurnState)
+		}
+	})
+
+	t.Run("should skip players with only dead cards when advancing the leader", func(t *testing.T) {
+		g := setup()
+		g.Players["1"].Cards[0].Alive = false
+		g.Players["1"].Cards[1].Alive = false
+
+		err := g.AttemptAction(Action{Type: Income})
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		err = g.EndTurn()
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+		if g.Leader != 2 {
+			t.Errorf("expected 2 to be leader, got %d", g.Leader)
+		}
+		if g.TurnState != Default {
+			t.Errorf("expected default state, got %s", g.TurnState)
 		}
 	})
 
@@ -719,7 +744,32 @@ func TestEndTurn(t *testing.T) {
 		}
 
 		if g.Leader != 0 {
-			t.Errorf("expected 0 to be leader, go %d", g.Leader)
+			t.Errorf("expected 0 to be leader, got %d", g.Leader)
+		}
+	})
+
+	t.Run("should set the game to won if only one player has living cards", func(t *testing.T) {
+		g := NewGame()
+		g.AddPlayer("0", "Test")
+		g.AddPlayer("1", "Test")
+		fmt.Printf("%+v", g.Players["1"])
+
+		g.Deal()
+		g.Players["1"].Cards[0].Alive = false
+		g.Players["1"].Cards[1].Alive = false
+
+		err := g.AttemptAction(Action{Type: Income})
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+
+		err = g.EndTurn()
+		if err != nil {
+			t.Errorf("got error: %s", err)
+		}
+
+		if g.Winner != "0" {
+			t.Errorf("expected 0 to be winner, got %s", g.Winner)
 		}
 	})
 }

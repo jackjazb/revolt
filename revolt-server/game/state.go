@@ -49,12 +49,14 @@ const (
 	LeaderLostChallenge TurnState = "leader_lost_challenge"
 	PlayerKilled        TurnState = "player_killed"
 	Finished            TurnState = "finished"
+	PlayerWon           TurnState = "player_won"
 )
 
 // Represents the current game state.
 type Game struct {
 	Deck             []Card
 	Players          map[string]*Player
+	Winner           string
 	Order            []string
 	Leader           int
 	TurnState        TurnState
@@ -71,6 +73,7 @@ func NewGame() Game {
 	game := Game{
 		Deck:             shuffled,
 		Players:          make(map[string]*Player),
+		Winner:           "",
 		Order:            []string{},
 		Leader:           0,
 		NextDeath:        "",
@@ -297,8 +300,31 @@ func (g *Game) EndTurn() error {
 		return errors.New("turn not finished")
 	}
 
-	g.Leader = (g.Leader + 1) % len(g.Players)
+	// Check for a winner.
+	inPlay := []Player{}
+	for _, player := range g.Players {
+		if len(player.GetLivingCards()) != 0 {
+			inPlay = append(inPlay, *player)
+		}
+	}
+
+	if len(inPlay) == 1 {
+		g.TurnState = PlayerWon
+		g.Winner = inPlay[0].Id
+		return nil
+	}
+
+	// Select the next player with living cards. Iterations are bounded to len(players) just in case.
+	for range len(g.Players) {
+		g.Leader = (g.Leader + 1) % len(g.Players)
+		if len(g.GetLeader().GetLivingCards()) != 0 {
+			break
+		}
+	}
 	g.TurnState = Default
+	g.PendingAction = Action{}
+	g.PendingBlock = Block{}
+	g.PendingChallenge = Challenge{}
 	return nil
 }
 

@@ -7,4 +7,4 @@
     };
 </script>
 
-<Button onclick={challenge}>challenge</Button>
+<Button onclick={challenge}>Challenge</Button>

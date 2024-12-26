@@ -1,11 +1,9 @@
-<!--
-The base game view for the leader, primarily allowing action choice.
--->
 <script lang="ts">
     import { global } from "../state.svelte";
     import { TurnState } from "../types";
-    import { getPlayerById, stateIn } from "../utils";
+    import { getCurrentActionBlockers, getPlayerById, stateIn } from "../utils";
     import ActionAssassinate from "./actions/ActionAssassinate.svelte";
+    import ActionBlock from "./actions/ActionBlock.svelte";
     import ActionChallenge from "./actions/ActionChallenge.svelte";
     import ActionCommit from "./actions/ActionCommit.svelte";
     import ActionForeignAid from "./actions/ActionForeignAid.svelte";
@@ -15,6 +13,7 @@ The base game view for the leader, primarily allowing action choice.
     import ActionTax from "./actions/ActionTax.svelte";
     import Button from "./atoms/Button.svelte";
     import Subtitle from "./atoms/Subtitle.svelte";
+    import Title from "./atoms/Title.svelte";
     import ResolveDeath from "./ResolveDeath.svelte";
 
     // Leaders can end their turn after a timeout.
@@ -48,39 +47,49 @@ The base game view for the leader, primarily allowing action choice.
 </script>
 
 {#if stateIn(global.state, TurnState.Default)}
-    <div class="flex flex-col gap-2">
-        <ActionIncome />
-        <ActionForeignAid />
-        <ActionTax />
-        <Button disabled>exchange</Button>
-    </div>
-    <div class={`grid grid-cols-5`}>
-        {#each global.state.peers as peer}
-            <div class="flex flex-col gap-2">
-                <Subtitle>{peer.name}</Subtitle>
+    {#if global.state.self.leading}
+        <div class="flex flex-col gap-2">
+            <ActionIncome />
+            <ActionForeignAid />
+            <ActionTax />
+            <Button disabled>exchange</Button>
+        </div>
+        <div class={`grid grid-cols-5 gap-2`}>
+            {#each global.state.peers as peer}
+                <div class="flex flex-col gap-2">
+                    <Subtitle>{peer.name}</Subtitle>
 
-                <ActionAssassinate target={peer.id} />
-                <ActionRevolt target={peer.id} />
-                <ActionSteal target={peer.id} />
-            </div>
-        {/each}
-    </div>
-{:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
-    <Subtitle>you've attempted {global.state.pendingAction.type}</Subtitle>
-    {#if global.state.pendingAction.target}
-        <h2>
-            targeting {getPlayerById(
-                global.state,
-                global.state.pendingAction.target,
-            )}!
-        </h2>
+                    <ActionAssassinate target={peer.id} />
+                    <ActionRevolt target={peer.id} />
+                    <ActionSteal target={peer.id} />
+                </div>
+            {/each}
+        </div>
+    {:else}
+        <Subtitle>Waiting for leader to play.</Subtitle>
     {/if}
-    <p>end turn in {(timeout / 1000).toFixed(2)}s</p>
-    <Button disabled={timeout > 0} onclick={commit}>commit</Button>
+{:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
+    <!-- The leader can end their turn after a timeout. Peers can block or challenge. -->
+    {#if global.state.self.leading}
+        <Button disabled={timeout > 0} onclick={commit}>
+            Finish ({(timeout / 1000).toFixed(2)}s)
+        </Button>
+    {:else}
+        {#if global.state.self.id === global.state.pendingAction.target}
+            {#each getCurrentActionBlockers(global.state) as card}
+                <ActionBlock {card} />
+            {/each}
+        {/if}
+        <ActionChallenge />
+    {/if}
 {:else if stateIn(global.state, TurnState.BlockPending)}
-    <h1>block pending</h1>
-    <ActionChallenge />
-    <ActionCommit />
+    {#if global.state.self.leading}
+        <h1>your move has been blocked</h1>
+        <ActionChallenge />
+        <ActionCommit text="accept" />
+    {:else}
+        The leader's move has been blocked
+    {/if}
 {:else if stateIn(global.state, TurnState.PlayerKilled, TurnState.LeaderLostChallenge, TurnState.PlayerLostChallenge)}
     <ResolveDeath />
 {:else if global.state.turnState === TurnState.Finished}
@@ -90,4 +99,6 @@ The base game view for the leader, primarily allowing action choice.
     {:else}
         <Subtitle>Waiting for leader to end turn</Subtitle>
     {/if}
+{:else if global.state.turnState === TurnState.PlayerWon}
+    <Title>{getPlayerById(global.state, global.state.winner)} won!</Title>
 {/if}

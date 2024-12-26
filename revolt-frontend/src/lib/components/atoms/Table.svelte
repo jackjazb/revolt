@@ -6,22 +6,24 @@
         data,
         row,
     }: {
-        headers: string[];
+        headers?: string[];
         data: T[];
         row: Snippet<[T]>;
     } = $props();
 </script>
 
 <table>
-    <thead>
-        <tr>
-            {#each headers as header}
-                <th class="border-neutral-500 border">
-                    {header}
-                </th>
-            {/each}
-        </tr>
-    </thead>
+    {#if headers}
+        <thead>
+            <tr>
+                {#each headers as header}
+                    <th class="border-neutral-500 border">
+                        {header}
+                    </th>
+                {/each}
+            </tr>
+        </thead>
+    {/if}
     <tbody>
         {#each data as r}
             {@render row(r)}
