@@ -66,7 +66,7 @@
             {/each}
         </div>
     {:else}
-        <Subtitle>Waiting for leader to play.</Subtitle>
+        <Subtitle>Waiting for the leader to play.</Subtitle>
     {/if}
 {:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
     <!-- The leader can end their turn after a timeout. Peers can block or challenge. -->

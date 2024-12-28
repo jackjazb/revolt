@@ -13,6 +13,7 @@
     >
     <Panel class="col-span-4 grid grid-cols-2 mb-auto">
         <Peer peer={global.state.self} />
+        <div></div>
         {#each global.state.peers as peer}
             <Peer {peer} />
         {/each}

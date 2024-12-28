@@ -78,6 +78,10 @@
                         card: Card.Contessa,
                         alive: false,
                     },
+                    {
+                        card: Card.Duke,
+                        alive: false,
+                    },
                 ],
                 credits: 2,
                 leading: false,
@@ -98,12 +102,12 @@
             },
         ],
         status: GameStatus.InProgress,
-        turnState: TurnState.PlayerKilled,
+        turnState: TurnState.ActionPending,
         nextDeath: "dc32ad16",
         winner: "",
         pendingAction: {
             type: ActionType.Assassinate as ActionType,
-            target: "",
+            target: "6717f23c",
         },
         pendingBlock: {
             card: Card.Contessa as Card,

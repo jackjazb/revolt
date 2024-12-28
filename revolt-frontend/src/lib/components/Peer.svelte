@@ -13,7 +13,6 @@
         <div class="font-bold">
             {peer.name}
         </div>
-        ~
         <div>
             {formatCurrency(peer.credits)}
         </div>
