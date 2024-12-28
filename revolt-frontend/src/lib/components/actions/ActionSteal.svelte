@@ -2,7 +2,7 @@
     import { global } from "../../state.svelte";
     import { ActionType } from "../../types";
     import { isAllowedAction } from "../../utils";
-    import Button from "../atoms/Button.svelte";
+    import LieButton from "../atoms/LieButton.svelte";
 
     let { target }: { target: string } = $props();
 
@@ -14,9 +14,9 @@
     };
 </script>
 
-<Button onclick={steal}>
-    steal
-    {#if !isAllowedAction(global.state, ActionType.Steal)}
-        (lie)
-    {/if}
-</Button>
+<LieButton
+    onclick={steal}
+    lie={!isAllowedAction(global.state, ActionType.Steal)}
+>
+    Steal
+</LieButton>

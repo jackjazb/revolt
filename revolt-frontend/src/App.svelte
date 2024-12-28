@@ -1,12 +1,13 @@
 <script lang="ts">
     import { ClientStatus } from "./lib/client";
     import Button from "./lib/components/atoms/Button.svelte";
-    import Card from "./lib/components/atoms/Card.svelte";
     import Icon from "./lib/components/atoms/Icon.svelte";
+    import Panel from "./lib/components/atoms/Panel.svelte";
     import TextInput from "./lib/components/atoms/TextInput.svelte";
     import Title from "./lib/components/atoms/Title.svelte";
     import Game from "./lib/components/pages/Game.svelte";
     import Lobby from "./lib/components/pages/Lobby.svelte";
+    import TestGame from "./lib/components/pages/TestGame.svelte";
     import { global } from "./lib/state.svelte";
     import { GameStatus, type CreateGameResponse } from "./lib/types";
     import { randomName } from "./lib/utils";
@@ -20,8 +21,9 @@
 
     const path = window.location.pathname.split("/").slice(1);
     let gameId = $state(path.length > 0 ? path[0] : undefined);
+    const debug = $derived(gameId === "test");
 
-    const post = async () => {
+    const createGame = async () => {
         const res = await fetch("http://localhost:8080/create", {
             method: "POST",
         });
@@ -37,10 +39,14 @@
     }
 </script>
 
-<main class="max-w-5xl mx-auto px-12 my-12">
-    {#if gameId}
+<main class="px-4 my-4">
+    {#if debug}
+        <TestGame />
+    {:else if gameId}
         {#await handleGameUrl() then _}
             {#if global.state.status === GameStatus.Lobby}
+                <h1 class="text-5xl my-5">Lobby</h1>
+
                 <Lobby />
             {:else if global.state.status === GameStatus.InProgress}
                 <Game />
@@ -52,17 +58,21 @@
             {/if}
         {/await}
     {:else}
+        <h1 class="text-5xl my-5">Revolt</h1>
         <div class="flex flex-col gap-2">
-            <Card row>
+            <Panel row>
                 <TextInput bind:value={playerNameInput} placeholder="name" />
-                <Button onclick={() => (playerNameInput = randomName())}>
+                <button
+                    onclick={() => (playerNameInput = randomName())}
+                    class="border-4 border-black border-double bg-gray-800 rounded-sm hover:brightness-75 duration-75"
+                >
                     <Icon type="dice" />
-                </Button>
-            </Card>
+                </button>
+            </Panel>
 
-            <Card>
-                <Button onclick={post}>create game</Button>
-            </Card>
+            <Panel>
+                <Button onclick={createGame}>Create Game</Button>
+            </Panel>
         </div>
     {/if}
 </main>

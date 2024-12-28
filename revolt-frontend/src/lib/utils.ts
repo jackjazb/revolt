@@ -54,7 +54,7 @@ export const BLOCKED_BY: Partial<Record<ActionType, Card[]>> = {
 };
 
 /**
- * Returns a list of cards that block the current action.
+ * Returns a list of cards that block the current pending action.
  */
 export function getCurrentActionBlockers(state: State): Card[] {
     if (!state.pendingAction) {
@@ -97,4 +97,8 @@ export function formatActionType(type: ActionType): string {
 
 export function formatCurrency(value: number): string {
     return `${value}₡`;
+}
+
+export function formatCard(card: Card): string {
+    return `${card}`.charAt(0).toUpperCase() + `${card}`.slice(1);
 }

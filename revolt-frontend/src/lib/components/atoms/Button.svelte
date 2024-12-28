@@ -14,15 +14,17 @@
 
 <button
     {...rest}
-    class={`
-        rounded-sm border-transparent border bg-neutral-800
-        py-1 px-2
+    class={[
+        `bg-gray-800 border-4 border-black  border-double
+        rounded-sm 
+        px-2
+        text-base
         hover:border-blue-400 duration-200
         focus:outline-4 
         disabled:brightness-75
-        disabled:border-none
-        ${rest.class}
-        `}
+        disabled:hover:border-black`,
+        rest.class,
+    ]}
 >
     {@render children()}
 </button>

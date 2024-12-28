@@ -2,7 +2,7 @@
     import { global } from "../../state.svelte";
     import { ActionType } from "../../types";
     import { isAllowedAction } from "../../utils";
-    import Button from "../atoms/Button.svelte";
+    import LieButton from "../atoms/LieButton.svelte";
 
     const tax = () => {
         global.client.attemptAction({
@@ -11,9 +11,6 @@
     };
 </script>
 
-<Button onclick={tax}>
-    tax
-    {#if !isAllowedAction(global.state, ActionType.Tax)}
-        (lie)
-    {/if}
-</Button>
+<LieButton onclick={tax} lie={!isAllowedAction(global.state, ActionType.Tax)}>
+    Tax
+</LieButton>

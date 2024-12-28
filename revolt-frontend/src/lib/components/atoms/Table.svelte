@@ -17,7 +17,7 @@
         <thead>
             <tr>
                 {#each headers as header}
-                    <th class="border-neutral-500 border">
+                    <th class="border-black border-double border-4">
                         {header}
                     </th>
                 {/each}

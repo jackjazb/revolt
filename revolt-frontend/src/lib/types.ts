@@ -3,12 +3,11 @@ Generally, types defined in this file match the JSON messages sent by the server
 */
 
 
-export type IconType = 'dice' | 'coin';
+export type IconType = "dice" | "coin" | "lie" | "skull" | "crown";
 /**
  * Possible card types
  */
 export enum Card {
-    Empty = "",
     Duke = "duke",
     Assassin = "assassin",
     Ambassador = "ambassador",
@@ -35,7 +34,7 @@ export enum ActionType {
  */
 export interface Action {
     type: ActionType,
-    target: string;
+    target?: string;
 }
 
 /**
@@ -135,7 +134,7 @@ export const initialState: State = {
         target: ""
     },
     pendingBlock: {
-        card: Card.Empty,
+        card: "" as Card,
         initiator: ""
     },
     pendingChallenge: {

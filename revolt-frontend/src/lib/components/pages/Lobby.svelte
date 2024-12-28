@@ -1,38 +1,32 @@
 <script lang="ts">
     import { global } from "../../state.svelte";
+    import { getLeader } from "../../utils";
     import Button from "../atoms/Button.svelte";
-    import Card from "../atoms/Card.svelte";
-    import Subtitle from "../atoms/Subtitle.svelte";
-    import Table from "../atoms/Table.svelte";
+    import Panel from "../atoms/Panel.svelte";
     import Title from "../atoms/Title.svelte";
     import LeaveGame from "../LeaveGame.svelte";
 </script>
 
-<Card class="flex-col">
-    <Title>Lobby</Title>
-    <div class="flex gap-4 items-center">
-        <Subtitle>
-            Connected to: <span class="font-mono">{global.state.gameId}</span>
-        </Subtitle>
+<Panel class="flex-col">
+    <Title>Waiting for {getLeader(global.state)} to start the game.</Title>
+    <div class="text-base">
+        Connected to
+        {global.state.gameId}
+        as
+        {global.state.self.name} // Game link:
+        <a class="underline" href={window.location.href}>
+            {window.location.href}
+        </a>
     </div>
-    <a href={window.location.href}>{window.location.href}</a>
 
-    <Table
-        headers={["peers"]}
-        data={[
-            global.state.self.name,
-            ...global.state.peers.map((p) => p.name),
-        ]}
-    >
-        {#snippet row(peer)}
-            <tr>
-                <td class="p-1 border-neutral-500 border">
-                    {peer}
-                </td>
-            </tr>
-        {/snippet}</Table
-    >
-
+    <Title>Players</Title>
+    <ul class="list-disc list-inside">
+        {#each global.state.peers as peer}
+            <li>
+                {peer.name}
+            </li>
+        {/each}
+    </ul>
     <div class="ml-auto">
         <Button
             onclick={() => global.client.startGame()}
@@ -43,4 +37,4 @@
         </Button>
         <LeaveGame />
     </div>
-</Card>
+</Panel>

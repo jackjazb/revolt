@@ -10,4 +10,4 @@
     };
 </script>
 
-<Button onclick={income}>income</Button>
+<Button onclick={income}>Income</Button>

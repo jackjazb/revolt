@@ -13,4 +13,4 @@
     };
 </script>
 
-<Button onclick={revolt}>revolt</Button>
+<Button onclick={revolt}>Revolt</Button>

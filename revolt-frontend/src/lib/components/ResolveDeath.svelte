@@ -1,7 +1,7 @@
 <script lang="ts">
     import { global } from "../state.svelte";
     import { getPlayerById } from "../utils";
-    import Button from "./atoms/Button.svelte";
+    import GameCard from "./atoms/GameCard.svelte";
     import Subtitle from "./atoms/Subtitle.svelte";
 
     const resolveDeath = (card: number) => {
@@ -10,12 +10,16 @@
 </script>
 
 {#if global.state.nextDeath === global.state.self.id}
-    <Subtitle>you lose a card!</Subtitle>
-    {#each global.state.self.cards as card, i}
-        {#if card.alive}
-            <Button onclick={() => resolveDeath(i)}>kill {card.card}</Button>
-        {/if}
-    {/each}
+    <Subtitle>Select a card to kill:</Subtitle>
+    <div class="flex gap-2">
+        {#each global.state.self.cards as card, i}
+            {#if card.alive}
+                <button onclick={() => resolveDeath(i)}>
+                    <GameCard {card} />
+                </button>
+            {/if}
+        {/each}
+    </div>
 {:else}
     <Subtitle>
         {getPlayerById(global.state, global.state.nextDeath)} loses a card!

@@ -8,6 +8,6 @@
     } = $props();
 </script>
 
-<h1 class="text-xl my-2 font-bold">
+<h1 class="text-xl my-1 font-bold">
     {@render children()}
 </h1>

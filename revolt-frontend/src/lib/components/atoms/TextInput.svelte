@@ -9,7 +9,7 @@
 </script>
 
 <input
-    class="py-1 px-2 rounded-sm bg-neutral-800"
+    class="px-2 rounded-sm bg-neutral-800 border-4 border-black border-double"
     type="text"
     {placeholder}
     bind:value

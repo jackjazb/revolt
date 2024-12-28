@@ -52,15 +52,15 @@
             <ActionIncome />
             <ActionForeignAid />
             <ActionTax />
-            <Button disabled>exchange</Button>
+            <Button disabled>Exchange</Button>
         </div>
         <div class={`grid grid-cols-5 gap-2`}>
             {#each global.state.peers as peer}
                 <div class="flex flex-col gap-2">
                     <Subtitle>{peer.name}</Subtitle>
 
-                    <ActionAssassinate target={peer.id} />
                     <ActionRevolt target={peer.id} />
+                    <ActionAssassinate target={peer.id} />
                     <ActionSteal target={peer.id} />
                 </div>
             {/each}
@@ -75,18 +75,15 @@
             Finish ({(timeout / 1000).toFixed(2)}s)
         </Button>
     {:else}
-        {#if global.state.self.id === global.state.pendingAction.target}
-            {#each getCurrentActionBlockers(global.state) as card}
-                <ActionBlock {card} />
-            {/each}
-        {/if}
+        {#each getCurrentActionBlockers(global.state) as card}
+            <ActionBlock {card} />
+        {/each}
         <ActionChallenge />
     {/if}
 {:else if stateIn(global.state, TurnState.BlockPending)}
     {#if global.state.self.leading}
-        <h1>your move has been blocked</h1>
         <ActionChallenge />
-        <ActionCommit text="accept" />
+        <ActionCommit text="Accept" />
     {:else}
         The leader's move has been blocked
     {/if}
@@ -94,10 +91,10 @@
     <ResolveDeath />
 {:else if global.state.turnState === TurnState.Finished}
     {#if global.state.self.leading}
-        <h1>finished</h1>
-        <Button onclick={end}>end turn</Button>
+        <h1>Finished</h1>
+        <Button onclick={end}>End your turn</Button>
     {:else}
-        <Subtitle>Waiting for leader to end turn</Subtitle>
+        <Subtitle>Waiting for the leader to end the turn</Subtitle>
     {/if}
 {:else if global.state.turnState === TurnState.PlayerWon}
     <Title>{getPlayerById(global.state, global.state.winner)} won!</Title>

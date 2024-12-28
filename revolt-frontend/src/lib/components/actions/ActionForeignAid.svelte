@@ -10,4 +10,4 @@
     };
 </script>
 
-<Button onclick={foreignAid}>foreign aid</Button>
+<Button onclick={foreignAid}>Foreign Aid</Button>

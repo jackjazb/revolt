@@ -4,5 +4,5 @@
 </script>
 
 <a href="/">
-    <Button onclick={() => global.client.leave()}>Leave game</Button>
+    <Button onclick={() => global.client.leave()}>Leave Game</Button>
 </a>
