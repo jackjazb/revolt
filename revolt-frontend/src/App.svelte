@@ -2,9 +2,6 @@
     import { ClientStatus } from "./lib/client";
     import Button from "./lib/components/atoms/Button.svelte";
     import Icon from "./lib/components/atoms/Icon.svelte";
-    import Panel from "./lib/components/atoms/Panel.svelte";
-    import TextInput from "./lib/components/atoms/TextInput.svelte";
-    import Title from "./lib/components/atoms/Title.svelte";
     import Game from "./lib/components/pages/Game.svelte";
     import Lobby from "./lib/components/pages/Lobby.svelte";
     import TestGame from "./lib/components/pages/TestGame.svelte";
@@ -54,25 +51,29 @@
             {#if global.status === ClientStatus.Connected}{:else if global.client.status === ClientStatus.Connecting}
                 <h1>loading...</h1>
             {:else if global.client.status === ClientStatus.Failed}
-                <Title>Connection failed.</Title>
+                <h1>Connection failed.</h1>
             {/if}
         {/await}
     {:else}
         <h1 class="text-5xl my-5">Revolt</h1>
         <div class="flex flex-col gap-2">
-            <Panel row>
-                <TextInput bind:value={playerNameInput} placeholder="name" />
+            <div class="panel flex-row">
+                <input
+                    type="text"
+                    bind:value={playerNameInput}
+                    placeholder="name"
+                />
                 <button
                     onclick={() => (playerNameInput = randomName())}
                     class="border-4 border-black border-double bg-gray-800 rounded-sm hover:brightness-75 duration-75"
                 >
                     <Icon type="dice" />
                 </button>
-            </Panel>
+            </div>
 
-            <Panel>
+            <div class="panel">
                 <Button onclick={createGame}>Create Game</Button>
-            </Panel>
+            </div>
         </div>
     {/if}
 </main>

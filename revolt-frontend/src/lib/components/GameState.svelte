@@ -2,18 +2,10 @@
     import { global } from "../state.svelte";
     import { TurnState } from "../types";
     import { getCurrentActionBlockers, getPlayerById, stateIn } from "../utils";
-    import ActionAssassinate from "./actions/ActionAssassinate.svelte";
     import ActionBlock from "./actions/ActionBlock.svelte";
     import ActionChallenge from "./actions/ActionChallenge.svelte";
     import ActionCommit from "./actions/ActionCommit.svelte";
-    import ActionForeignAid from "./actions/ActionForeignAid.svelte";
-    import ActionIncome from "./actions/ActionIncome.svelte";
-    import ActionRevolt from "./actions/ActionRevolt.svelte";
-    import ActionSteal from "./actions/ActionSteal.svelte";
-    import ActionTax from "./actions/ActionTax.svelte";
     import Button from "./atoms/Button.svelte";
-    import Subtitle from "./atoms/Subtitle.svelte";
-    import Title from "./atoms/Title.svelte";
     import ResolveDeath from "./ResolveDeath.svelte";
 
     // Leaders can end their turn after a timeout.
@@ -47,26 +39,8 @@
 </script>
 
 {#if stateIn(global.state, TurnState.Default)}
-    {#if global.state.self.leading}
-        <div class="flex flex-col gap-2">
-            <ActionIncome />
-            <ActionForeignAid />
-            <ActionTax />
-            <Button disabled>Exchange</Button>
-        </div>
-        <div class={`grid grid-cols-5 gap-2`}>
-            {#each global.state.peers as peer}
-                <div class="flex flex-col gap-2">
-                    <Subtitle>{peer.name}</Subtitle>
-
-                    <ActionRevolt target={peer.id} />
-                    <ActionAssassinate target={peer.id} />
-                    <ActionSteal target={peer.id} />
-                </div>
-            {/each}
-        </div>
-    {:else}
-        <Subtitle>Waiting for the leader to play.</Subtitle>
+    {#if !global.state.self.leading}
+        <h2>Waiting for the leader to play.</h2>
     {/if}
 {:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
     <!-- The leader can end their turn after a timeout. Peers can block or challenge. -->
@@ -94,8 +68,8 @@
         <h1>Finished</h1>
         <Button onclick={end}>End your turn</Button>
     {:else}
-        <Subtitle>Waiting for the leader to end the turn</Subtitle>
+        <h2>Waiting for the leader to end the turn</h2>
     {/if}
 {:else if global.state.turnState === TurnState.PlayerWon}
-    <Title>{getPlayerById(global.state, global.state.winner)} won!</Title>
+    <h1>{getPlayerById(global.state, global.state.winner)} won!</h1>
 {/if}

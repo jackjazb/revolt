@@ -1,6 +1,7 @@
 <script lang="ts">
     import { global } from "../../state.svelte";
     import { ActionType } from "../../types";
+    import { formatCurrency } from "../../utils";
     import Button from "../atoms/Button.svelte";
 
     let { target }: { target: string } = $props();
@@ -13,4 +14,6 @@
     };
 </script>
 
-<Button onclick={revolt}>Revolt</Button>
+<Button onclick={revolt}>
+    Revolt (-{formatCurrency(7)})
+</Button>

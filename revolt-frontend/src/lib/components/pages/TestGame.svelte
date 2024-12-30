@@ -12,13 +12,13 @@
     const state: State = {
         timestamp: "2024-12-28T12:44:13.917749381Z",
         gameId: "6336bae3",
-        ownerId: "dc32ad16",
+        ownerId: "1",
         self: {
             name: "Jack",
-            id: "dc32ad16",
+            id: "1",
             cards: [
                 {
-                    card: Card.Contessa,
+                    card: Card.Duke,
                     alive: true,
                 },
                 {
@@ -27,18 +27,19 @@
                 },
             ],
             credits: 7,
-            leading: true,
+            leading: false,
             allowedActions: [
                 ActionType.Income,
                 ActionType.ForeignAid,
                 ActionType.Revolt,
                 ActionType.Assassinate,
+                ActionType.Tax,
             ],
         },
         peers: [
             {
                 name: "Alice",
-                id: "badbe5f2",
+                id: "a",
                 cards: [],
                 credits: 7,
                 leading: false,
@@ -46,7 +47,7 @@
             },
             {
                 name: "Bob",
-                id: "5717f23c",
+                id: "b",
                 cards: [
                     {
                         card: Card.Duke,
@@ -59,7 +60,7 @@
             },
             {
                 name: "Charlene",
-                id: "6717f23c",
+                id: "c",
                 cards: [
                     {
                         card: Card.Ambassador,
@@ -72,7 +73,7 @@
             },
             {
                 name: "Daniel",
-                id: "6717f23c",
+                id: "d",
                 cards: [
                     {
                         card: Card.Contessa,
@@ -89,7 +90,7 @@
             },
             {
                 name: "Emily",
-                id: "6717f23c",
+                id: "e",
                 cards: [
                     {
                         card: Card.Assassin,
@@ -102,21 +103,35 @@
             },
         ],
         status: GameStatus.InProgress,
-        turnState: TurnState.ActionPending,
-        nextDeath: "dc32ad16",
+        nextDeath: "e",
         winner: "",
         pendingAction: {
             type: ActionType.Assassinate as ActionType,
-            target: "6717f23c",
+            target: "e",
         },
         pendingBlock: {
             card: Card.Contessa as Card,
-            initiator: "6717f23c",
+            initiator: "e",
         },
         pendingChallenge: {
             initiator: "",
         },
+        turnState: TurnState.ActionPending,
     };
+
+    let leader = "b";
+    let blocker = "1";
+
+    if (state.self.id === leader) {
+        state.self.leading = true;
+    }
+    for (const p of state.peers) {
+        if (p.id === leader) {
+            console.log("hi");
+            p.leading = true;
+        }
+    }
+    state.pendingBlock.initiator = blocker;
 
     global.state = state;
 </script>

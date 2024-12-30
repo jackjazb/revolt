@@ -43,24 +43,23 @@ export function isAllowedAction(state: State, action: ActionType): boolean {
     return state.self.allowedActions.includes(action);
 }
 
-
-/**
- * Defines which cards block a given action.
- */
-export const BLOCKED_BY: Partial<Record<ActionType, Card[]>> = {
-    [ActionType.ForeignAid]: [Card.Duke],
-    [ActionType.Assassinate]: [Card.Contessa],
-    [ActionType.Steal]: [Card.Captain, Card.Ambassador],
-};
-
 /**
  * Returns a list of cards that block the current pending action.
  */
 export function getCurrentActionBlockers(state: State): Card[] {
+    const blockedBy: Partial<Record<ActionType, Card[]>> = {
+        [ActionType.ForeignAid]: [Card.Duke],
+        [ActionType.Assassinate]: [Card.Contessa],
+        [ActionType.Steal]: [Card.Captain, Card.Ambassador],
+    };
     if (!state.pendingAction) {
         return [];
     }
-    return BLOCKED_BY[state.pendingAction.type] ?? [];
+    if (state.pendingAction.target && state.pendingAction.target != state.self.id) {
+        return [];
+
+    }
+    return blockedBy[state.pendingAction.type] ?? [];
 }
 
 /**
@@ -101,4 +100,29 @@ export function formatCurrency(value: number): string {
 
 export function formatCard(card: Card): string {
     return `${card}`.charAt(0).toUpperCase() + `${card}`.slice(1);
+}
+
+export function formatCurrentAction(state: State): string {
+    const leader = getLeader(state);
+    if (state.pendingAction.target) {
+        const target = state.pendingAction.target === state.self.id ? 'you' : getPlayerById(state, state.pendingAction.target);
+        switch (state.pendingAction.type) {
+            case ActionType.Assassinate:
+                return `${leader} has attempted to assassinate ${target}.`;
+            case ActionType.Revolt:
+                return `${leader} has revolted against ${target}.`;
+            case ActionType.Steal:
+                return `${leader} has attempted to steal from ${target}.`;
+        }
+    }
+    return `${leader} has attempted ${formatActionType(state.pendingAction.type)}.`;
+}
+
+export function formatCurrentBlock(state: State): string {
+    if (!state.pendingBlock.initiator) {
+        return "";
+    }
+    const blocker = getPlayerById(state, state.pendingBlock.initiator);
+    const card = formatCard(state.pendingBlock.card);
+    return `${blocker} has blocked your action with their ${card}.`;
 }

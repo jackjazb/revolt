@@ -8,7 +8,6 @@
         getPlayerById,
         stateIn,
     } from "../utils";
-    import Title from "./atoms/Title.svelte";
 
     // TODO can base this on pendingChallenge, not the pending block state
     let leaderFailedToChallengeBlock = $derived(
@@ -32,7 +31,7 @@
     );
 </script>
 
-<Title>
+<h1>
     {#if stateIn(global.state, TurnState.Default)}
         {getLeader(global.state)} is choosing an action.
     {:else if stateIn(global.state, TurnState.ActionPending)}
@@ -71,4 +70,4 @@
         {getPlayerById(global.state, global.state.nextDeath)}
         loses a card.
     {/if}
-</Title>
+</h1>

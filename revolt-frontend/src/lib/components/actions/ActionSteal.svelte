@@ -1,7 +1,7 @@
 <script lang="ts">
     import { global } from "../../state.svelte";
     import { ActionType } from "../../types";
-    import { isAllowedAction } from "../../utils";
+    import { formatCurrency, isAllowedAction } from "../../utils";
     import LieButton from "../atoms/LieButton.svelte";
 
     let { target }: { target: string } = $props();
@@ -18,5 +18,5 @@
     onclick={steal}
     lie={!isAllowedAction(global.state, ActionType.Steal)}
 >
-    Steal
+    Steal (+{formatCurrency(2)})
 </LieButton>

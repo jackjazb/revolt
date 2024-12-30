@@ -2,13 +2,11 @@
     import { global } from "../../state.svelte";
     import { getLeader } from "../../utils";
     import Button from "../atoms/Button.svelte";
-    import Panel from "../atoms/Panel.svelte";
-    import Title from "../atoms/Title.svelte";
     import LeaveGame from "../LeaveGame.svelte";
 </script>
 
-<Panel class="flex-col">
-    <Title>Waiting for {getLeader(global.state)} to start the game.</Title>
+<div class="panel flex-col">
+    <h1>Waiting for {getLeader(global.state)} to start the game.</h1>
     <div class="text-base">
         Connected to
         {global.state.gameId}
@@ -19,7 +17,7 @@
         </a>
     </div>
 
-    <Title>Players</Title>
+    <h1>Players</h1>
     <ul class="list-disc list-inside">
         {#each global.state.peers as peer}
             <li>
@@ -37,4 +35,4 @@
         </Button>
         <LeaveGame />
     </div>
-</Panel>
+</div>

@@ -21,6 +21,8 @@
     {@render children()}
 
     {#if lie}
-        <Icon type="lie" size={16} />
+        <span class="text-red-500">
+            <Icon type="lie" size={16} />
+        </span>
     {/if}
 </Button>

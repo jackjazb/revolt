@@ -17,7 +17,23 @@
 
 @layer base {
     :root {
-      @apply bg-red-900;
-      @apply text-gray-200;
+        @apply bg-red-900;
+        @apply text-gray-200;
     }
-  }
+    h1{
+        @apply text-xl my-1 font-bold;
+    }
+    h2{
+        @apply text-lg font-bold;
+    }
+    input[type=text]{
+        @apply px-2 rounded-sm bg-neutral-800 border-4 border-black border-double;
+    }
+}
+
+
+@layer components {
+    .panel {
+        @apply rounded-sm bg-neutral-700 p-2 gap-2 flex border-double border-4 border-black;
+    }
+}

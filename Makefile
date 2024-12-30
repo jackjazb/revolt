@@ -3,5 +3,6 @@ be:
 fe:
 	(cd revolt-frontend && pnpm dev)
 
-test_be:
+test:
 	(cd revolt-server && go test ./...)
+	(cd revolt-frontend && pnpm test run)
