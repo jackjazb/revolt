@@ -1,3 +1,4 @@
+<!-- Displays for all players when an action has been taken. Allows challenging -->
 <script lang="ts">
     import { global } from "../state.svelte";
     import { TurnState } from "../types";
@@ -7,23 +8,23 @@
         stateIn,
     } from "../utils";
     import ActionBlock from "./actions/ActionBlock.svelte";
-    import ActionChallenge from "./actions/ActionChallenge.svelte";
-    import Button from "./atoms/Button.svelte";
+    import Modal from "./atoms/Modal.svelte";
 
     let dialog: HTMLDialogElement;
+    let closed = $state(false);
 
-    const commit = () => {
-        global.client.commitTurn();
+    const challenge = () => {
+        global.client.challenge();
     };
-    const end = () => {
-        global.client.endTurn();
-    };
+
+    // Show for non leading peers after the leader has chosen an action.
+    let open = $derived(
+        !global.state.self.leading &&
+            stateIn(global.state, TurnState.ActionPending),
+    );
 
     $effect(() => {
-        if (
-            !global.state.self.leading &&
-            stateIn(global.state, TurnState.ActionPending)
-        ) {
+        if (open) {
             dialog.showModal();
         } else {
             dialog.close();
@@ -31,18 +32,16 @@
     });
 </script>
 
-<dialog
-    bind:this={dialog}
-    class="backdrop:backdrop-brightness-50 text-inherit bg-inherit"
->
-    <div class="panel flex-col">
+<Modal {open}>
+    <div class="flex gap-2 flex-col">
         <h1>
             {formatCurrentAction(global.state)}
         </h1>
+        <!-- This will show if a) the current action is foreign aid or b) the current player is targeted. -->
         {#each getCurrentActionBlockers(global.state) as card}
             <ActionBlock {card} />
         {/each}
-        <ActionChallenge />
-        <Button onclick={() => dialog.close()}>Pass</Button>
+        <button onclick={challenge}>Challenge</button>
+        <button onclick={() => dialog.close()}>Pass</button>
     </div>
-</dialog>
+</Modal>

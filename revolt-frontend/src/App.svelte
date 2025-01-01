@@ -1,6 +1,5 @@
 <script lang="ts">
     import { ClientStatus } from "./lib/client";
-    import Button from "./lib/components/atoms/Button.svelte";
     import Icon from "./lib/components/atoms/Icon.svelte";
     import Game from "./lib/components/pages/Game.svelte";
     import Lobby from "./lib/components/pages/Lobby.svelte";
@@ -72,7 +71,7 @@
             </div>
 
             <div class="panel">
-                <Button onclick={createGame}>Create Game</Button>
+                <button onclick={createGame}>Create Game</button>
             </div>
         </div>
     {/if}

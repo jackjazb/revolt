@@ -5,6 +5,7 @@
     import GameState from "../GameState.svelte";
     import LeaveGame from "../LeaveGame.svelte";
     import Peer from "../Peer.svelte";
+    import ResolveDeathDialog from "../ResolveDeathDialog.svelte";
     import StateSummary from "../StateSummary.svelte";
 </script>
 
@@ -29,6 +30,7 @@
 
         <ActionPendingDialog />
         <BlockPendingDialog />
+        <ResolveDeathDialog />
         <GameState />
     </div>
 </div>

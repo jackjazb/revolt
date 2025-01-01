@@ -1,12 +1,13 @@
 <script lang="ts">
+    import { derived } from "svelte/store";
     import { global } from "../../state.svelte";
-    import { ActionType } from "../../types";
+    import { ActionType, TurnState } from "../../types";
     import {
         formatActionType,
         formatCurrency,
         isAllowedAction,
+        stateIn,
     } from "../../utils";
-    import Button from "../atoms/Button.svelte";
     import Icon from "../atoms/Icon.svelte";
 
     let {
@@ -34,6 +35,14 @@
     const lie = !isAllowedAction(global.state, type);
 
     const canAfford = global.state.self.credits + profit >= 0;
+
+    let dis = $derived(!stateIn(global.state, TurnState.Default));
+    let isDisabled = $derived(
+        !stateIn(global.state, TurnState.Default) ||
+            !(global.state.self.credits + profit >= 0) ||
+            !global.state.self.leading,
+    );
+
     const attempt = () => {
         global.client.attemptAction({
             type,
@@ -42,10 +51,10 @@
     };
 </script>
 
-<Button
+<button
     class="flex flex-row gap-2 items-center content justify-center"
     onclick={attempt}
-    disabled={disabled || !canAfford || !global.state.self.leading}
+    disabled={isDisabled}
 >
     {formatActionType(type)}
     {#if profit}
@@ -56,4 +65,4 @@
             <Icon type="lie" size={16} />
         </span>
     {/if}
-</Button>
+</button>

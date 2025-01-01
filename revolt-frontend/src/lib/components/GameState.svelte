@@ -3,10 +3,6 @@
     import { TurnState } from "../types";
     import { getCurrentActionBlockers, getPlayerById, stateIn } from "../utils";
     import ActionBlock from "./actions/ActionBlock.svelte";
-    import ActionChallenge from "./actions/ActionChallenge.svelte";
-    import ActionCommit from "./actions/ActionCommit.svelte";
-    import Button from "./atoms/Button.svelte";
-    import ResolveDeath from "./ResolveDeath.svelte";
 
     // Leaders can end their turn after a timeout.
     let timeout = $state(0);
@@ -45,28 +41,18 @@
 {:else if stateIn(global.state, TurnState.ActionPending) && global.state.pendingAction}
     <!-- The leader can end their turn after a timeout. Peers can block or challenge. -->
     {#if global.state.self.leading}
-        <Button disabled={timeout > 0} onclick={commit}>
+        <button disabled={timeout > 0} onclick={commit}>
             Finish ({(timeout / 1000).toFixed(2)}s)
-        </Button>
+        </button>
     {:else}
         {#each getCurrentActionBlockers(global.state) as card}
             <ActionBlock {card} />
         {/each}
-        <ActionChallenge />
     {/if}
-{:else if stateIn(global.state, TurnState.BlockPending)}
-    {#if global.state.self.leading}
-        <ActionChallenge />
-        <ActionCommit text="Accept" />
-    {:else}
-        The leader's move has been blocked
-    {/if}
-{:else if stateIn(global.state, TurnState.PlayerKilled, TurnState.LeaderLostChallenge, TurnState.PlayerLostChallenge)}
-    <ResolveDeath />
 {:else if global.state.turnState === TurnState.Finished}
     {#if global.state.self.leading}
         <h1>Finished</h1>
-        <Button onclick={end}>End your turn</Button>
+        <button onclick={end}>End your turn</button>
     {:else}
         <h2>Waiting for the leader to end the turn</h2>
     {/if}

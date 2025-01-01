@@ -1,7 +1,6 @@
 <script lang="ts">
     import { global } from "../../state.svelte";
     import { getLeader } from "../../utils";
-    import Button from "../atoms/Button.svelte";
     import LeaveGame from "../LeaveGame.svelte";
 </script>
 
@@ -26,13 +25,13 @@
         {/each}
     </ul>
     <div class="ml-auto">
-        <Button
+        <button
             onclick={() => global.client.startGame()}
             class="ml-auto"
             disabled={!global.state.self.leading}
         >
             Start Game
-        </Button>
+        </button>
         <LeaveGame />
     </div>
 </div>

@@ -107,20 +107,24 @@
         winner: "",
         pendingAction: {
             type: ActionType.Assassinate as ActionType,
-            target: "e",
+            target: "b",
         },
         pendingBlock: {
             card: Card.Contessa as Card,
-            initiator: "e",
+            initiator: "1",
         },
         pendingChallenge: {
             initiator: "",
         },
-        turnState: TurnState.ActionPending,
+        turnState: TurnState.LeaderLostChallenge,
     };
 
-    let leader = "b";
-    let blocker = "1";
+    // Shortcut for setting the leader's ID and other current action initiators.
+    let leader = "a";
+    let target = "b";
+    let blocker = "c";
+    let nextDeath = "1";
+    let turnState = TurnState.ActionPending;
 
     if (state.self.id === leader) {
         state.self.leading = true;
@@ -132,6 +136,9 @@
         }
     }
     state.pendingBlock.initiator = blocker;
+    state.pendingAction.target = target;
+    state.nextDeath = nextDeath;
+    state.turnState = turnState;
 
     global.state = state;
 </script>

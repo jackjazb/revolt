@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import Button from "../atoms/Button.svelte";
     import Icon from "../atoms/Icon.svelte";
 
     let {
@@ -14,7 +13,7 @@
     } = $props();
 </script>
 
-<Button
+<button
     {onclick}
     class="flex flex-row gap-2 items-center content justify-center"
 >
@@ -25,4 +24,4 @@
             <Icon type="lie" size={16} />
         </span>
     {/if}
-</Button>
+</button>

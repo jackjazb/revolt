@@ -55,6 +55,7 @@ export function getCurrentActionBlockers(state: State): Card[] {
     if (!state.pendingAction) {
         return [];
     }
+    // If the action has a target (e.g. not foreign aid), only block it if the target is self.
     if (state.pendingAction.target && state.pendingAction.target != state.self.id) {
         return [];
 

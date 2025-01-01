@@ -1,8 +1,5 @@
 /*
 Defines the core game state machine.
-
-Notes:
-- Players are generally referenced by a number.
 */
 package game
 

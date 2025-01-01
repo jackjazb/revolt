@@ -3,7 +3,6 @@
     import { ActionType, TurnState, type Peer } from "../types";
     import { formatCurrency, getPlayerById, stateIn } from "../utils";
     import ActionButton from "./actions/ActionButton.svelte";
-    import Button from "./atoms/Button.svelte";
     import GameCard from "./atoms/GameCard.svelte";
 
     const {
@@ -17,16 +16,6 @@
     const isOut = peer.cards.filter((c) => !c.alive).length === 2;
 
     let overlayText = $derived.by(() => {
-        if (self) {
-            return;
-        }
-        // If this peer is the
-        const isChoosingAction =
-            global.state.turnState === TurnState.Default && peer.leading;
-        if (isChoosingAction) {
-            return "Choosing an action";
-        }
-
         const isTargeted =
             stateIn(global.state, TurnState.ActionPending) &&
             global.state.pendingAction.target &&
@@ -34,6 +23,7 @@
         if (isTargeted) {
             return "Choosing a response";
         }
+
         const isChoosingCardToLose =
             stateIn(
                 global.state,
@@ -49,6 +39,15 @@
             stateIn(global.state, TurnState.BlockPending) && peer.leading;
         if (isBlocked) {
             return `Blocked by ${getPlayerById(global.state, global.state.pendingBlock.initiator!)}`;
+        }
+
+        if (self) {
+            return;
+        }
+        const isChoosingAction =
+            global.state.turnState === TurnState.Default && peer.leading;
+        if (isChoosingAction) {
+            return "Choosing an action";
         }
     });
 </script>
@@ -101,7 +100,7 @@
             <ActionButton disabled={isOut} type={ActionType.Income} />
             <ActionButton disabled={isOut} type={ActionType.ForeignAid} />
             <ActionButton disabled={isOut} type={ActionType.Tax} />
-            <Button disabled>Exchange</Button>
+            <button disabled>Exchange</button>
 
             <!-- Otherwise, allow actions like Assassinate targeted at the current peer. -->
         {:else}

@@ -2,22 +2,24 @@
     import { global } from "../state.svelte";
     import { TurnState } from "../types";
     import { formatCurrentBlock, stateIn } from "../utils";
-    import Button from "./atoms/Button.svelte";
 
     let dialog: HTMLDialogElement;
+
+    let open = $derived(
+        stateIn(global.state, TurnState.BlockPending) &&
+            global.state.self.leading,
+    );
 
     const commit = () => {
         global.client.commitTurn();
     };
+
     const challenge = () => {
         global.client.challenge();
     };
 
     $effect(() => {
-        if (
-            stateIn(global.state, TurnState.BlockPending) &&
-            global.state.self.leading
-        ) {
+        if (open) {
             dialog.showModal();
         } else {
             dialog.close();
@@ -25,13 +27,10 @@
     });
 </script>
 
-<dialog
-    bind:this={dialog}
-    class="backdrop:backdrop-brightness-50 text-inherit bg-inherit"
->
+<dialog bind:this={dialog}>
     <div class="panel flex-col">
         <h1>{formatCurrentBlock(global.state)}</h1>
-        <Button onclick={challenge}>Challenge</Button>
-        <Button onclick={commit}>Accept</Button>
+        <button onclick={challenge}>Challenge</button>
+        <button onclick={commit}>Accept</button>
     </div>
 </dialog>
